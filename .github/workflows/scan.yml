@@ -1,0 +1,59 @@
+name: S&P 500 Trading Scanners
+
+on:
+  workflow_dispatch:
+  schedule:
+    # 16:45 New York, segunda a sexta. GitHub schedules não garantem execução
+    # ao segundo; para timeframes >= 1D esse atraso é aceitável.
+    - cron: "45 16 * * 1-5"
+      timezone: "America/New_York"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: trading-scanners
+  cancel-in-progress: false
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: python -m pip install -r requirements.txt
+
+      - name: Run scanners
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python main.py
+
+      - name: Notify workflow failure
+        if: failure()
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python -m trading_scanner.notify_failure
+
+      - name: Persist signal state and heartbeat
+        if: always()
+        run: |
+          git config user.name "trading-scanner-bot"
+          git config user.email "trading-scanner-bot@users.noreply.github.com"
+          git add state/signals.json state/heartbeat.json
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "chore: update scanner state [skip ci]"
+          git push
+

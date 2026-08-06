@@ -1,0 +1,55 @@
+scanner:
+  rsi_period: 14
+
+  # Modo padrão: replica a lógica do Pine "RSI Divergence Indicator" enviado.
+  detector_mode: tradingview
+  pivot_left: 5
+  pivot_right: 5
+  # Estes são os valores EXATOS do Pine. Como o código usa
+  # barssince(plFound[1]), a distância efetiva entre pivots aceites é 6..61.
+  min_distance_bars: 5
+  max_distance_bars: 60
+  min_price_change_pct: 0.0
+  min_rsi_delta: 0.0
+
+  # As opções abaixo pertencem ao detector alternativo price_pivots e ficam
+  # disponíveis para comparação/calibração futura.
+  comparison_mode: consecutive
+
+  # Decisão ainda em calibração:
+  # - price_pivot: lê RSI exatamente na vela do pivot de preço.
+  # - rsi_pivot: procura um pivot independente do RSI próximo do pivot de preço.
+  rsi_alignment_mode: price_pivot
+  rsi_pivot_window: 2
+
+  # O alerta só nasce quando o segundo pivot já tem pivot_right barras à direita.
+  alert_age_bars: 1
+  timeframes: [1D, 3D, 1W]
+
+data:
+  # Histórico suficiente para RSI/pivots sem tornar o scan diário demasiado pesado.
+  start: "2020-01-01"
+  # Âncora fixa para barras de três sessões de mercado. Tem de ser validada
+  # visualmente contra o timeframe 3D que o utilizador pretende replicar.
+  three_day_anchor: "2000-01-03"
+  batch_size: 75
+  retries: 2
+  auto_adjust: true
+
+validation:
+  min_rows: 80
+  max_calendar_gap_days: 14
+  split_ratio_tolerance: 0.08
+  # FALSO por defeito, deliberadamente. Uma queda real de -49% da racio 1.96 e
+  # um split 2:1 da 2.00 -- indistinguiveis pelo preco. Bloquear significa
+  # perder o ticker em silencio; um sinal perdido de que nunca ficas a saber e
+  # pior que um alerta falso que ves e ignoras. A resolucao definitiva e o feed
+  # de splits (yfinance actions=True), nao adivinhar pelo preco.
+  block_suspicious_splits: false
+
+telegram:
+  # Serve também de heartbeat: se não chegar, a execução pode não ter arrancado.
+  send_heartbeat: true
+
+state_file: state/signals.json
+heartbeat_file: state/heartbeat.json
