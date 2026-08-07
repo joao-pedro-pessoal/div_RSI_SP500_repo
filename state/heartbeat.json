@@ -1,5 +1,7 @@
 {
-  "ran_at": null,
-  "status": "never_run",
-  "details": {}
+  "details": {
+    "error": "HTTP Error 403: Forbidden"
+  },
+  "ran_at": "2026-08-07T11:01:04.783127+00:00",
+  "status": "failed"
 }
