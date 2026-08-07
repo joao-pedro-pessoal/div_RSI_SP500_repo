@@ -1,7 +1,13 @@
 {
   "details": {
-    "error": "HTTP Error 403: Forbidden"
+    "data_quality_skips": 24,
+    "download_failures": 0,
+    "downloaded": 503,
+    "new_signals": 59,
+    "scan_errors": 0,
+    "sent": 59,
+    "universe": 503
   },
-  "ran_at": "2026-08-07T11:01:04.783127+00:00",
-  "status": "failed"
+  "ran_at": "2026-08-07T11:17:55.975522+00:00",
+  "status": "ok"
 }
