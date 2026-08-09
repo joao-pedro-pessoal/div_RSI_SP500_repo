@@ -11,9 +11,23 @@ if TYPE_CHECKING:
 
 
 class TelegramClient:
-    def __init__(self, token: str | None = None, chat_id: str | None = None, *, dry_run: bool = False):
+    def __init__(
+        self,
+        token: str | None = None,
+        chat_id: str | None = None,
+        topic_id: str | None = None,
+        *,
+        dry_run: bool = False,
+    ):
         self.token = token or os.getenv("TELEGRAM_BOT_TOKEN")
         self.chat_id = chat_id or os.getenv("TELEGRAM_CHAT_ID")
+        # Grupos-forum (is_forum: true) tem topicos. Sem message_thread_id
+        # o Telegram entrega SEMPRE no topico "General", mesmo com o chat_id
+        # correto. O ID do topico esta no getUpdates, campo message_thread_id.
+        # Opcional: em grupos normais e canais deixa-se vazio.
+        self.topic_id = topic_id if topic_id is not None else os.getenv("TELEGRAM_TOPIC_ID")
+        if self.topic_id is not None:
+            self.topic_id = str(self.topic_id).strip() or None
         self.dry_run = dry_run
         if not self.dry_run and (not self.token or not self.chat_id):
             raise RuntimeError("TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID are required")
@@ -23,7 +37,10 @@ class TelegramClient:
             print(text)
             return True
         url = f"https://api.telegram.org/bot{self.token}/sendMessage"
-        body = urllib.parse.urlencode({"chat_id": self.chat_id, "text": text}).encode("utf-8")
+        payload_fields = {"chat_id": self.chat_id, "text": text}
+        if self.topic_id:
+            payload_fields["message_thread_id"] = self.topic_id
+        body = urllib.parse.urlencode(payload_fields).encode("utf-8")
         request = urllib.request.Request(url, data=body, method="POST")
         with urllib.request.urlopen(request, timeout=20) as response:
             payload = json.loads(response.read().decode("utf-8"))
