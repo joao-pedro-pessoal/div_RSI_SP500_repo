@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-08-07T22:27:30.670995+00:00",
+  "updated_at": "2026-08-09T14:34:56.576876+00:00",
   "sent_signal_ids": [
     "ABBV|1D|bearish_regular|tradingview_rsi_pivot|2026-07-02T00:00:00|2026-07-29T00:00:00",
     "ADBE|1W|bullish_regular|tradingview_rsi_pivot|2026-02-20T00:00:00|2026-06-19T00:00:00",
@@ -64,6 +64,7 @@
     "NKE|1W|bullish_regular|tradingview_rsi_pivot|2026-04-10T00:00:00|2026-06-26T00:00:00",
     "NWSA|1D|bearish_regular|tradingview_rsi_pivot|2026-07-16T00:00:00|2026-07-29T00:00:00",
     "NWS|1D|bearish_regular|tradingview_rsi_pivot|2026-07-16T00:00:00|2026-07-29T00:00:00",
+    "PNW|1W|bearish_regular|tradingview_rsi_pivot|2026-03-13T00:00:00|2026-07-03T00:00:00",
     "PSX|1D|bearish_regular|tradingview_rsi_pivot|2026-07-21T00:00:00|2026-07-31T00:00:00",
     "PYPL|1D|bearish_regular|tradingview_rsi_pivot|2026-07-16T00:00:00|2026-07-29T00:00:00",
     "RL|1W|bearish_regular|tradingview_rsi_pivot|2026-04-17T00:00:00|2026-06-19T00:00:00",
