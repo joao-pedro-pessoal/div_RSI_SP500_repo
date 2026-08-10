@@ -1,10 +1,11 @@
 {
-  "updated_at": "2026-08-09T14:48:20.484979+00:00",
+  "updated_at": "2026-08-10T22:28:23.317075+00:00",
   "sent_signal_ids": [
     "ABBV|1D|bearish_regular|tradingview_rsi_pivot|2026-07-02T00:00:00|2026-07-29T00:00:00",
     "ADBE|1W|bullish_regular|tradingview_rsi_pivot|2026-02-20T00:00:00|2026-06-19T00:00:00",
     "AEE|1W|bearish_regular|tradingview_rsi_pivot|2026-02-27T00:00:00|2026-06-26T00:00:00",
     "AEP|1W|bearish_regular|tradingview_rsi_pivot|2026-02-27T00:00:00|2026-06-26T00:00:00",
+    "AES|1D|bearish_regular|tradingview_rsi_pivot|2026-07-22T00:00:00|2026-08-03T00:00:00",
     "AJG|1D|bearish_regular|tradingview_rsi_pivot|2026-07-02T00:00:00|2026-07-29T00:00:00",
     "AKAM|1D|bullish_regular|tradingview_rsi_pivot|2026-06-25T00:00:00|2026-07-29T00:00:00",
     "BG|1D|bullish_regular|tradingview_rsi_pivot|2026-07-01T00:00:00|2026-07-30T00:00:00",
@@ -31,6 +32,7 @@
     "ED|1W|bearish_regular|tradingview_rsi_pivot|2026-02-13T00:00:00|2026-07-03T00:00:00",
     "ERIE|3D|bullish_regular|tradingview_rsi_pivot|2026-05-13T00:00:00|2026-07-15T00:00:00",
     "EVRG|1W|bearish_regular|tradingview_rsi_pivot|2026-02-13T00:00:00|2026-07-03T00:00:00",
+    "EXE|3D|bullish_regular|tradingview_rsi_pivot|2026-06-17T00:00:00|2026-07-20T00:00:00",
     "FCX|1W|bearish_regular|tradingview_rsi_pivot|2026-04-17T00:00:00|2026-06-19T00:00:00",
     "FISV|1W|bullish_regular|tradingview_rsi_pivot|2026-03-27T00:00:00|2026-06-19T00:00:00",
     "FIS|1W|bullish_regular|tradingview_rsi_pivot|2026-04-10T00:00:00|2026-06-19T00:00:00",
@@ -64,6 +66,7 @@
     "NKE|1W|bullish_regular|tradingview_rsi_pivot|2026-04-10T00:00:00|2026-06-26T00:00:00",
     "NWSA|1D|bearish_regular|tradingview_rsi_pivot|2026-07-16T00:00:00|2026-07-29T00:00:00",
     "NWS|1D|bearish_regular|tradingview_rsi_pivot|2026-07-16T00:00:00|2026-07-29T00:00:00",
+    "PLD|3D|bearish_regular|tradingview_rsi_pivot|2026-05-27T00:00:00|2026-07-20T00:00:00",
     "PNW|1W|bearish_regular|tradingview_rsi_pivot|2026-03-13T00:00:00|2026-07-03T00:00:00",
     "PSX|1D|bearish_regular|tradingview_rsi_pivot|2026-07-21T00:00:00|2026-07-31T00:00:00",
     "PYPL|1D|bearish_regular|tradingview_rsi_pivot|2026-07-16T00:00:00|2026-07-29T00:00:00",
@@ -72,12 +75,14 @@
     "SNDK|1W|bearish_regular|tradingview_rsi_pivot|2026-05-08T00:00:00|2026-06-19T00:00:00",
     "SPGI|1W|bullish_regular|tradingview_rsi_pivot|2026-05-15T00:00:00|2026-06-26T00:00:00",
     "SYY|1D|bearish_regular|tradingview_rsi_pivot|2026-07-02T00:00:00|2026-07-29T00:00:00",
+    "TECH|1D|bearish_regular|tradingview_rsi_pivot|2026-07-17T00:00:00|2026-08-03T00:00:00",
     "TER|1W|bearish_regular|tradingview_rsi_pivot|2026-04-24T00:00:00|2026-06-19T00:00:00",
     "TGT|1W|bearish_regular|tradingview_rsi_pivot|2026-04-24T00:00:00|2026-06-26T00:00:00",
     "TMUS|1D|bullish_regular|tradingview_rsi_pivot|2026-07-23T00:00:00|2026-07-31T00:00:00",
     "TTD|1W|bullish_regular|tradingview_rsi_pivot|2026-04-10T00:00:00|2026-06-26T00:00:00",
     "V|1D|bearish_regular|tradingview_rsi_pivot|2026-07-16T00:00:00|2026-07-29T00:00:00",
     "WEC|1W|bearish_regular|tradingview_rsi_pivot|2026-02-13T00:00:00|2026-06-26T00:00:00",
+    "WM|3D|bearish_regular|tradingview_rsi_pivot|2026-03-05T00:00:00|2026-07-20T00:00:00",
     "ZTS|1W|bullish_regular|tradingview_rsi_pivot|2026-05-15T00:00:00|2026-07-03T00:00:00"
   ]
 }
