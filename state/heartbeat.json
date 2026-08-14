@@ -1,7 +1,14 @@
 {
   "details": {
-    "error": "HTTP Error 429: Too Many Requests"
+    "data_quality_skips": 28,
+    "download_failures": 0,
+    "downloaded": 503,
+    "new_signals": 22,
+    "scan_errors": 0,
+    "send_failures": 0,
+    "sent": 22,
+    "universe": 503
   },
-  "ran_at": "2026-08-13T23:19:03.098493+00:00",
-  "status": "failed"
+  "ran_at": "2026-08-14T09:47:04.518885+00:00",
+  "status": "ok"
 }
