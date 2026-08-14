@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import json
 import os
+import time
+import urllib.error
 import urllib.parse
 import urllib.request
 from typing import TYPE_CHECKING
@@ -32,19 +34,68 @@ class TelegramClient:
         if not self.dry_run and (not self.token or not self.chat_id):
             raise RuntimeError("TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID are required")
 
+    # O Telegram limita a ~20 mensagens/minuto para o MESMO grupo. Sem pausa,
+    # um scan com muitos sinais novos dispara tudo de seguida e apanha 429.
+    MIN_INTERVAL_SECONDS = 3.5
+    MAX_RETRIES = 4
+
+    _last_send_at = 0.0
+
     def send(self, text: str) -> bool:
+        """
+        Envia uma mensagem. Devolve False se nao conseguiu — NUNCA levanta
+        excecao por falha de envio.
+
+        Porque nao levanta: um alerta que nao sai nao pode derrubar o scan
+        inteiro. Antes, um 429 a meio do ciclo matava o processo e o estado
+        nunca chegava a ser gravado, pelo que os alertas ja enviados eram
+        reenviados na execucao seguinte — e apanhavam 429 outra vez.
+        """
         if self.dry_run:
             print(text)
             return True
+
+        # espacamento minimo entre mensagens
+        elapsed = time.monotonic() - TelegramClient._last_send_at
+        if elapsed < self.MIN_INTERVAL_SECONDS:
+            time.sleep(self.MIN_INTERVAL_SECONDS - elapsed)
+
         url = f"https://api.telegram.org/bot{self.token}/sendMessage"
         payload_fields = {"chat_id": self.chat_id, "text": text}
         if self.topic_id:
             payload_fields["message_thread_id"] = self.topic_id
         body = urllib.parse.urlencode(payload_fields).encode("utf-8")
-        request = urllib.request.Request(url, data=body, method="POST")
-        with urllib.request.urlopen(request, timeout=20) as response:
-            payload = json.loads(response.read().decode("utf-8"))
-        return bool(payload.get("ok"))
+
+        for attempt in range(self.MAX_RETRIES):
+            try:
+                request = urllib.request.Request(url, data=body, method="POST")
+                with urllib.request.urlopen(request, timeout=20) as response:
+                    payload = json.loads(response.read().decode("utf-8"))
+                TelegramClient._last_send_at = time.monotonic()
+                return bool(payload.get("ok"))
+            except urllib.error.HTTPError as exc:
+                TelegramClient._last_send_at = time.monotonic()
+                if exc.code == 429:
+                    # O Telegram diz QUANTO esperar em retry_after. Respeitar
+                    # esse valor é o que evita insistir e prolongar o bloqueio.
+                    wait = 30
+                    try:
+                        detail = json.loads(exc.read().decode("utf-8"))
+                        wait = int(detail.get("parameters", {}).get("retry_after", wait))
+                    except Exception:
+                        pass
+                    wait = min(wait, 90)
+                    print(f"[telegram] 429; a esperar {wait}s (tentativa {attempt + 1}/{self.MAX_RETRIES})")
+                    time.sleep(wait + 1)
+                    continue
+                print(f"[telegram] HTTP {exc.code}: envio falhou")
+                return False
+            except Exception as exc:
+                TelegramClient._last_send_at = time.monotonic()
+                print(f"[telegram] {type(exc).__name__}: envio falhou")
+                return False
+        print("[telegram] desisti apos varias tentativas")
+        return False
 
     def send_signal(self, signal: "DivergenceSignal") -> bool:
         bullish = signal.kind == "bullish_regular"

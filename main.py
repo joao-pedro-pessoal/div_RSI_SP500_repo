@@ -72,11 +72,20 @@ def run() -> int:
                 if not state.contains(signal.signal_id):
                     new_signals.append(signal)
 
+        # GRAVA A CADA N ENVIOS, nao so no fim. Se o processo morrer a meio,
+        # o que ja foi enviado fica marcado e nao e reenviado na proxima
+        # execucao. Sem isto, uma falha a meio faz o scan seguinte repetir
+        # tudo e voltar a bater no mesmo limite.
         sent = 0
-        for signal in sorted(new_signals, key=lambda x: (x.timeframe, x.ticker, x.kind)):
+        failed_sends = 0
+        for index, signal in enumerate(sorted(new_signals, key=lambda x: (x.timeframe, x.ticker, x.kind)), start=1):
             if telegram.send_signal(signal):
                 state.mark_sent(signal.signal_id)
                 sent += 1
+            else:
+                failed_sends += 1
+            if not args.dry_run and index % 5 == 0:
+                state.save()
 
         if not args.dry_run:
             state.save()
@@ -89,6 +98,7 @@ def run() -> int:
             "scan_errors": len(scan_errors),
             "new_signals": len(new_signals),
             "sent": sent,
+            "send_failures": failed_sends,
         }
         write_heartbeat(heartbeat_path, status="ok", details=summary)
 
