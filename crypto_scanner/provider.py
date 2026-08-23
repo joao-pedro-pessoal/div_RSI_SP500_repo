@@ -47,8 +47,14 @@ class ProviderConfig:
 def _request(params: dict, timeout: int) -> dict:
     url = f"{KLINE_URL}?{urllib.parse.urlencode(params)}"
     request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
-    with urllib.request.urlopen(request, timeout=timeout) as response:
-        return json.loads(response.read().decode("utf-8"))
+    try:
+        with urllib.request.urlopen(request, timeout=timeout) as response:
+            return json.loads(response.read().decode("utf-8"))
+    except urllib.error.HTTPError as exc:
+        host = urllib.parse.urlparse(url).netloc
+        raise urllib.error.HTTPError(
+            url, exc.code, f"{exc.reason} (host: {host})", exc.headers, None
+        ) from None
 
 
 def fetch_klines(symbol: str, config: ProviderConfig = ProviderConfig()) -> pd.DataFrame:

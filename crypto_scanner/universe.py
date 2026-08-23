@@ -73,8 +73,14 @@ def _get_json(url: str, params: dict | None = None, timeout: int = 30) -> dict |
     if params:
         url = f"{url}?{urllib.parse.urlencode(params)}"
     request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
-    with urllib.request.urlopen(request, timeout=timeout) as response:
-        return json.loads(response.read().decode("utf-8"))
+    try:
+        with urllib.request.urlopen(request, timeout=timeout) as response:
+            return json.loads(response.read().decode("utf-8"))
+    except urllib.error.HTTPError as exc:
+        # Sem o host na mensagem, um 403 nao diz QUAL das origens bloqueou --
+        # e essa e a unica informacao que interessa quando isto falha em CI.
+        host = urllib.parse.urlparse(url).netloc
+        raise RuntimeError(f"HTTP {exc.code} de {host}") from exc
 
 
 def _get_json_retry(url: str, params: dict | None = None, attempts: int = 4) -> dict | list:
