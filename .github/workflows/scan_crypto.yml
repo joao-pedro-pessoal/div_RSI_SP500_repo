@@ -1,0 +1,83 @@
+name: Crypto RSI Divergence Scanner
+
+on:
+  workflow_dispatch:
+  schedule:
+    # 00:20 UTC diariamente. Cripto negoceia 24/7, portanto nao ha "fecho
+    # de mercado"; corre-se logo apos a virada do dia UTC para que a barra
+    # diaria mais recente ja esteja fechada.
+    - cron: "20 0 * * *"
+
+permissions:
+  contents: write
+
+concurrency:
+  # MESMO grupo do workflow do S&P 500, de proposito.
+  #
+  # Os dois escrevem ficheiros de estado no mesmo repositorio. Se corressem
+  # em simultaneo, o segundo a terminar apanhava o push rejeitado. Partilhar
+  # o grupo faz o segundo ESPERAR pelo primeiro em vez de competir com ele.
+  #
+  # Os horarios ja estao afastados (21:45 UTC vs 00:20 UTC), mas execucoes
+  # manuais podem coincidir -- e e sempre nessas que se descobre o problema.
+  group: trading-scanners
+  cancel-in-progress: false
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run crypto scanner
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          # A variavel de ambiente chama-se TELEGRAM_TOPIC_ID (o codigo le
+          # esse nome), mas o VALOR vem de um secret diferente. E isto que
+          # permite dois topicos distintos no mesmo repositorio sem tocar
+          # no codigo nem alterar os secrets ja existentes.
+          TELEGRAM_TOPIC_ID: ${{ secrets.TELEGRAM_TOPIC_ID_CRYPTO }}
+        run: python main_crypto.py
+
+      - name: Notify workflow failure
+        if: failure()
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          TELEGRAM_TOPIC_ID: ${{ secrets.TELEGRAM_TOPIC_ID_CRYPTO }}
+        run: python -m crypto_scanner.notify_failure
+
+      - name: Persist crypto state and universe snapshot
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add state/crypto_signals.json state/crypto_heartbeat.json universe/ || true
+          if git diff --cached --quiet; then
+            echo "nada para guardar"
+            exit 0
+          fi
+          git commit -m "chore: update crypto scanner state [skip ci]"
+          # Retry: mesmo com o grupo de concorrencia partilhado, um push pode
+          # falhar se algo escrever no repositorio entretanto.
+          for attempt in 1 2 3; do
+            git pull --rebase --autostash && git push && exit 0
+            echo "push falhou (tentativa $attempt); a repetir"
+            sleep 5
+          done
+          echo "push falhou apos 3 tentativas"
+          exit 1

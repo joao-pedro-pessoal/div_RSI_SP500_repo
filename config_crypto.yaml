@@ -1,0 +1,65 @@
+scanner:
+  rsi_period: 14
+
+  # Replica o "RSI Divergence Indicator" do TradingView, tal como no
+  # scanner do S&P 500. Manter os dois iguais permite comparar resultados
+  # entre mercados sem confundir diferencas de metodo com diferencas de ativo.
+  detector_mode: tradingview
+  pivot_left: 5
+  pivot_right: 5
+
+  # Valores exatos do Pine. Como usa barssince(plFound[1]), a distancia
+  # efetiva entre pivots aceites e 6..61, nao 5..60.
+  min_distance_bars: 5
+  max_distance_bars: 60
+  min_price_change_pct: 0.0
+  min_rsi_delta: 0.0
+
+  # Decisao ainda em aberto (so aplicavel a detector_mode: price_pivots)
+  rsi_alignment_mode: price_pivot
+  rsi_pivot_window: 2
+
+  timeframes: [4h, 1D, 3D, 1W]
+
+  # Janela de alerta EM BARRAS DE CADA TIMEFRAME.
+  #
+  # O scan corre 1x/dia, mas uma vela de 4h fecha 6 vezes por dia. Com
+  # janela de 1, perdiam-se 5 em cada 6 confirmacoes de 4h.
+  #
+  # O 4h usa 7 e nao 6 de proposito: a barra extra da sobreposicao, logo
+  # uma execucao atrasada ou saltada nao deixa buraco. A deduplicacao por
+  # signal_id garante que a sobreposicao nao gera repetidos.
+  alert_age_bars:
+    4h: 7
+    1D: 2
+    3D: 1
+    1W: 1
+
+universe:
+  limit: 100
+  exclude_stablecoins: true   # preco fixo por construcao: divergencia sem significado
+  exclude_wrapped: true       # replicam o subjacente: duplicariam sinais
+  snapshot_dir: universe      # guarda o ranking de cada scan (ver universe.py)
+
+data:
+  # 4200 barras = ~700 dias. O numero e ditado pelo timeframe SEMANAL:
+  # com 1500 barras havia so 35 velas semanais, no limite do minimo de
+  # RSI(14) + pivots 5+5, e o 1W quase nao produziria sinais.
+  bars_4h: 4200
+  sleep_between: 0.15
+  retries: 3
+
+validation:
+  min_rows: 120
+  max_gap_bars: 12            # barras 4h; 12 = dois dias sem dados
+  # Sem verificacao de splits: contratos perpetuos nao tem splits nem
+  # dividendos. Este limiar so REPORTA picos que revertem, nunca bloqueia --
+  # cripto move 40% num dia a serio, e um filtro agressivo descartaria
+  # exatamente os eventos que mais interessam.
+  max_single_bar_move: 0.60
+
+telegram:
+  send_heartbeat: true
+
+state_file: state/crypto_signals.json
+heartbeat_file: state/crypto_heartbeat.json
