@@ -2,13 +2,13 @@
   "details": {
     "data_quality_skips": 0,
     "download_failures": 0,
-    "downloaded": 20,
-    "new_signals": 1,
+    "downloaded": 100,
+    "new_signals": 18,
     "scan_errors": 0,
     "send_failures": 0,
-    "sent": 1,
-    "universe": 20
+    "sent": 18,
+    "universe": 100
   },
-  "ran_at": "2026-08-23T13:31:12.958561+00:00",
+  "ran_at": "2026-08-23T13:52:12.963105+00:00",
   "status": "ok"
 }
