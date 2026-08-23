@@ -256,3 +256,133 @@ class MainPipelineTests(unittest.TestCase):
         self.assertEqual(payload["status"], "ok")
         self.assertGreater(payload["details"]["new_signals"], 0)
         self.assertEqual(payload["details"]["new_signals"], payload["details"]["sent"])
+
+
+class OKXProviderTests(unittest.TestCase):
+    """
+    Testa a paginacao contra respostas SIMULADAS da OKX.
+
+    Nao substitui uma chamada real, mas fixa as tres coisas que a
+    documentacao especifica e que sao faceis de implementar ao contrario:
+    ordem newest-first, cursor `after` a andar para tras, e o campo
+    `confirm` que marca a vela ainda em formacao.
+    """
+
+    @staticmethod
+    def _fake_page(newest_ms: int, count: int, forming: bool = False):
+        """Uma pagina OKX: newest-first, 4h de espacamento."""
+        rows = []
+        for i in range(count):
+            ts = newest_ms - i * 4 * 3600 * 1000
+            confirm = "0" if (forming and i == 0) else "1"
+            price = 100 + i
+            rows.append([str(ts), str(price), str(price * 1.01), str(price * 0.99),
+                         str(price), "1000", "10", "10", confirm])
+        return {"code": "0", "msg": "", "data": rows}
+
+    def test_pagination_walks_backwards_and_sorts(self):
+        from crypto_scanner import provider
+
+        newest = 1_800_000_000_000
+        pages = []
+        cursor_seen = []
+
+        def fake_get_retry(url, params, config):
+            cursor_seen.append(params.get("after"))
+            page_index = len(pages)
+            if page_index >= 3:
+                return {"code": "0", "msg": "", "data": []}
+            start = newest - page_index * 100 * 4 * 3600 * 1000
+            page = self._fake_page(start, 100, forming=(page_index == 0))
+            pages.append(page)
+            return page
+
+        original = provider._get_retry
+        try:
+            provider._get_retry = fake_get_retry
+            df = provider.fetch_klines("BTC-USDT-SWAP",
+                                       provider.ProviderConfig(bars=300, sleep_between=0))
+        finally:
+            provider._get_retry = original
+
+        # a primeira pagina nao leva cursor; as seguintes levam
+        self.assertIsNone(cursor_seen[0])
+        self.assertTrue(all(c is not None for c in cursor_seen[1:]))
+        # o cursor tem de ANDAR PARA TRAS no tempo
+        numeric = [int(c) for c in cursor_seen[1:]]
+        self.assertEqual(numeric, sorted(numeric, reverse=True))
+        # resultado ordenado do mais antigo para o mais recente
+        self.assertTrue(df.index.is_monotonic_increasing)
+        self.assertFalse(df.index.has_duplicates)
+        # a vela em formacao (confirm="0") nao pode aparecer
+        self.assertEqual(len(df), 299)
+
+    def test_forming_candle_is_excluded(self):
+        from crypto_scanner.provider import _rows_to_frame
+        page = self._fake_page(1_800_000_000_000, 10, forming=True)
+        df = _rows_to_frame(page["data"])
+        self.assertEqual(len(df), 9)
+
+    def test_okx_symbol_format_in_chart_link(self):
+        """instId da OKX e BTC-USDT-SWAP; o TradingView quer OKX:BTCUSDT.P"""
+        self.assertEqual("PENGU-USDT-SWAP".split("-")[0], "PENGU")
+
+
+class TelegramTopicRoutingTests(unittest.TestCase):
+    """
+    Este teste existe porque o cliente de cripto foi copiado de uma versao
+    ANTIGA do scanner de accoes, anterior ao suporte a topicos. O secret
+    estava correto e o codigo ignorava-o: as mensagens iam para o General
+    sem erro nenhum -- uma falha silenciosa que so se ve no Telegram.
+    """
+
+    def _client(self, topic_env):
+        import os
+        from crypto_scanner.telegram_client import TelegramClient
+        antes = os.environ.get("TELEGRAM_TOPIC_ID")
+        os.environ["TELEGRAM_BOT_TOKEN"] = "x:y"
+        os.environ["TELEGRAM_CHAT_ID"] = "-1003951050134"
+        os.environ.pop("TELEGRAM_TOPIC_ID", None)
+        if topic_env is not None:
+            os.environ["TELEGRAM_TOPIC_ID"] = topic_env
+        try:
+            return TelegramClient()
+        finally:
+            os.environ.pop("TELEGRAM_TOPIC_ID", None)
+            if antes is not None:
+                os.environ["TELEGRAM_TOPIC_ID"] = antes
+
+    def test_topic_id_is_read_from_environment(self):
+        self.assertEqual(self._client("778").topic_id, "778")
+
+    def test_blank_or_missing_topic_falls_back_to_general(self):
+        self.assertIsNone(self._client("").topic_id)
+        self.assertIsNone(self._client("   ").topic_id)
+        self.assertIsNone(self._client(None).topic_id)
+
+    def test_message_thread_id_is_sent_when_topic_set(self):
+        """Nao basta ler a variavel: tem de ir no corpo do pedido."""
+        import json
+        import urllib.request
+        from crypto_scanner.telegram_client import TelegramClient
+
+        capturado = {}
+
+        def fake_urlopen(request, timeout=None):
+            capturado["body"] = request.data.decode()
+
+            class R:
+                def read(self): return b'{"ok":true}'
+                def __enter__(self): return self
+                def __exit__(self, *a): return False
+            return R()
+
+        client = self._client("778")
+        original = urllib.request.urlopen
+        try:
+            urllib.request.urlopen = fake_urlopen
+            TelegramClient._last_send_at = 0.0
+            client.send("teste")
+        finally:
+            urllib.request.urlopen = original
+        self.assertIn("message_thread_id=778", capturado["body"])

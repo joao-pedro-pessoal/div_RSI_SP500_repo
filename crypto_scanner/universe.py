@@ -1,10 +1,10 @@
 """
-universe.py — top N coins by market cap, mapped to Bybit USDT perpetuals.
+universe.py — top N coins by market cap, mapped to OKX USDT perpetual swaps.
 
 DATA PROVENANCE
   Ranking : https://api.coingecko.com/api/v3/coins/markets
             Public endpoint, no API key. Sent: nothing but query parameters.
-  Symbols : https://api.bybit.com/v5/market/instruments-info
+  Symbols : https://www.okx.com/api/v5/public/instruments
             Public endpoint, no key, no authentication.
   Stored  : universe/ranking_<date>.json on disk, committed to the repo.
             Nothing is sent anywhere else.
@@ -30,8 +30,9 @@ from dataclasses import dataclass, asdict
 from datetime import datetime, timezone
 from pathlib import Path
 
+from .provider import fetch_perpetual_symbols
+
 COINGECKO_MARKETS = "https://api.coingecko.com/api/v3/coins/markets"
-BYBIT_INSTRUMENTS = "https://api.bybit.com/v5/market/instruments-info"
 
 USER_AGENT = "CryptoDivergenceScanner/1.0"
 
@@ -140,36 +141,6 @@ def fetch_ranking(pages: int = 2, per_page: int = 250) -> list[dict]:
     return rows
 
 
-def fetch_perpetual_symbols() -> set[str]:
-    """
-    USDT-margined perpetuals currently trading on Bybit.
-
-    `category=linear` covers USDT and USDC linear contracts. Only entries
-    with status Trading and settleCoin USDT are kept, so delisted or
-    pre-launch contracts do not enter the universe.
-    """
-    symbols: set[str] = set()
-    cursor = ""
-    for _ in range(20):                      # generous page guard
-        params = {"category": "linear", "limit": 1000}
-        if cursor:
-            params["cursor"] = cursor
-        payload = _get_json(BYBIT_INSTRUMENTS, params)
-        result = payload.get("result", {}) if isinstance(payload, dict) else {}
-        for item in result.get("list", []):
-            if (
-                item.get("status") == "Trading"
-                and item.get("settleCoin") == "USDT"
-                and item.get("contractType") == "LinearPerpetual"
-            ):
-                symbols.add(item["symbol"])
-        cursor = result.get("nextPageCursor") or ""
-        if not cursor:
-            break
-        time.sleep(0.2)
-    return symbols
-
-
 def is_wrapped(symbol: str, name: str) -> bool:
     if symbol.upper() in WRAPPED_SYMBOLS:
         return True
@@ -183,7 +154,7 @@ def build_universe(
     exclude_wrapped: bool = True,
     snapshot_dir: Path | None = None,
 ) -> list[Coin]:
-    """Ranked coins that actually have a Bybit USDT perpetual."""
+    """Ranked coins that actually have an OKX USDT perpetual swap."""
     ranking = fetch_ranking()
     if not ranking:
         raise RuntimeError("empty ranking from CoinGecko")
@@ -191,7 +162,7 @@ def build_universe(
     stable_ids = fetch_stablecoin_ids() if exclude_stablecoins else set()
     perps = fetch_perpetual_symbols()
     if not perps:
-        raise RuntimeError("no perpetual symbols returned by Bybit")
+        raise RuntimeError("no perpetual symbols returned by OKX")
 
     coins: list[Coin] = []
     dropped = {"stablecoin": 0, "wrapped": 0, "no_perp": 0}
@@ -216,7 +187,7 @@ def build_universe(
         # step: tickers collide and are not standardised across venues.
         # Verifying against the live instrument list is what keeps this
         # honest — an unverified guess would silently scan the wrong asset.
-        exchange_symbol = f"{symbol}USDT"
+        exchange_symbol = f"{symbol}-USDT-SWAP"     # OKX instId format
         if exchange_symbol not in perps:
             dropped["no_perp"] += 1
             continue

@@ -76,9 +76,10 @@ def to_4h(frame: pd.DataFrame, drop_forming: bool = True) -> pd.DataFrame:
     """
     Native 4h bars, with the currently forming bar removed.
 
-    Bybit includes the in-progress candle. Analysing it produces pivots that
-    can disappear four hours later, which means alerts that retroactively
-    stop existing.
+    O provider ja filtra pelo campo `confirm` da OKX, mas esta verificacao
+    fica como segunda linha de defesa: uma barra em formacao produz pivots
+    que desaparecem quatro horas depois, ou seja alertas que deixam
+    retroativamente de existir.
     """
     out = _require_utc(frame)
     if drop_forming and len(out):
