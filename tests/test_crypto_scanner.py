@@ -244,12 +244,12 @@ class MainPipelineTests(unittest.TestCase):
             sys.argv = original_argv
 
     def test_main_completes_successfully(self):
-        self.assertEqual(self._run_main(["BTCUSDT", "ETHUSDT"]), 0)
+        self.assertEqual(self._run_main(["BTC-USDT-SWAP", "ETH-USDT-SWAP"]), 0)
 
     def test_main_sends_signals_when_present(self):
         """Nao basta nao rebentar: o caminho de envio tem de correr."""
         import main_crypto as main_module
-        self.assertEqual(self._run_main([f"C{i}USDT" for i in range(20)]), 0)
+        self.assertEqual(self._run_main([f"C{i}-USDT-SWAP" for i in range(20)]), 0)
         state_path = Path("state/crypto_heartbeat.json")
         self.assertTrue(state_path.exists())
         payload = json.loads(state_path.read_text())
@@ -323,9 +323,17 @@ class OKXProviderTests(unittest.TestCase):
         df = _rows_to_frame(page["data"])
         self.assertEqual(len(df), 9)
 
-    def test_okx_symbol_format_in_chart_link(self):
-        """instId da OKX e BTC-USDT-SWAP; o TradingView quer OKX:BTCUSDT.P"""
-        self.assertEqual("PENGU-USDT-SWAP".split("-")[0], "PENGU")
+    def test_chart_link_never_doubles_the_quote(self):
+        """
+        Bug apanhado no output de um teste: um simbolo sem tracos dava
+        "C8USDTUSDT.P" -- USDT duplicado, link para um grafico inexistente.
+        """
+        from crypto_scanner.telegram_client import TelegramClient as T
+        self.assertEqual(T._base_asset("BTC-USDT-SWAP"), "BTC")
+        self.assertEqual(T._base_asset("PENGU-USDT-SWAP"), "PENGU")
+        self.assertEqual(T._base_asset("BTCUSDT"), "BTC")
+        self.assertEqual(T._base_asset("C8USDT"), "C8")
+        self.assertEqual(T._base_asset("BTC"), "BTC")
 
 
 class TelegramTopicRoutingTests(unittest.TestCase):

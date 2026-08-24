@@ -48,8 +48,18 @@ class SweepParams:
     max_bars_after_pivot: int = 8   # o varrimento tem de vir logo a seguir
 
     # --- a recuperacao ("volta a onde comecou") ---
+    # CRITERIO PRINCIPAL: o pavio como fracao da amplitude TOTAL da vela.
+    #
+    # Substitui pavio/corpo como medida central. O racio pavio/corpo tem um
+    # defeito: uma vela com corpo grande falha o racio mesmo com um pavio
+    # enorme, e uma vela com corpo minusculo passa com um pavio irrelevante.
+    # A fracao da amplitude mede "pavio dominante" de forma estavel.
+    #
+    # 0.50 = metade da vela e pavio.  0.65 = claramente dominante.
+    min_wick_fraction: float = 0.65
     min_close_position: float = 0.55   # fecho no topo X da amplitude da vela
-    min_wick_ratio: float = 1.0        # pavio >= X vezes o corpo
+                                       # (implicado pela fracao, fica como rede)
+    min_wick_ratio: float = 0.8        # pavio >= X vezes o corpo (secundario)
     require_close_above_origin: bool = True
 
     # --- qualidade ---
@@ -71,6 +81,7 @@ class Sweep:
     sweep_close: float
     penetration_pct: float        # quanto passou da origem, em % do preco
     close_position: float         # 0 = fecho no minimo da vela, 1 = no maximo
+    wick_fraction: float          # pavio / amplitude total da vela
     wick_ratio: float             # pavio / corpo
     bars_after_last_pivot: int
 
@@ -203,11 +214,13 @@ def detect_sweep(df: pd.DataFrame, symbol: str, timeframe: str,
             threshold = origin + span * p.origin_tolerance
             close_pos = (c - l) / rng
             wick = (min(o, c) - l)
+            wick_fraction = wick / rng
             wick_ratio = wick / body if body > 1e-12 else float("inf")
             depth_pct = (lows[last_pivot_i] - l) / lows[last_pivot_i] * 100.0
 
             if (
                 l <= threshold
+                and wick_fraction >= p.min_wick_fraction
                 and close_pos >= p.min_close_position
                 and wick_ratio >= p.min_wick_ratio
                 and depth_pct >= p.min_sweep_depth_pct
@@ -219,7 +232,8 @@ def detect_sweep(df: pd.DataFrame, symbol: str, timeframe: str,
                     trend_start_level=float(origin), n_pivots=len(run),
                     trend_gain_pct=float(gain_pct), sweep_extreme=l, sweep_close=c,
                     penetration_pct=float((origin - l) / origin * 100.0),
-                    close_position=float(close_pos), wick_ratio=float(min(wick_ratio, 999)),
+                    close_position=float(close_pos), wick_fraction=float(wick_fraction),
+                    wick_ratio=float(min(wick_ratio, 999)),
                     bars_after_last_pivot=int(gap),
                 )
 
@@ -238,11 +252,13 @@ def detect_sweep(df: pd.DataFrame, symbol: str, timeframe: str,
             threshold = origin - span * p.origin_tolerance
             close_pos = (h - c) / rng
             wick = (h - max(o, c))
+            wick_fraction = wick / rng
             wick_ratio = wick / body if body > 1e-12 else float("inf")
             depth_pct = (h - highs[last_pivot_i]) / highs[last_pivot_i] * 100.0
 
             if (
                 h >= threshold
+                and wick_fraction >= p.min_wick_fraction
                 and close_pos >= p.min_close_position
                 and wick_ratio >= p.min_wick_ratio
                 and depth_pct >= p.min_sweep_depth_pct
@@ -254,7 +270,8 @@ def detect_sweep(df: pd.DataFrame, symbol: str, timeframe: str,
                     trend_start_level=float(origin), n_pivots=len(run),
                     trend_gain_pct=float(gain_pct), sweep_extreme=h, sweep_close=c,
                     penetration_pct=float((h - origin) / origin * 100.0),
-                    close_position=float(close_pos), wick_ratio=float(min(wick_ratio, 999)),
+                    close_position=float(close_pos), wick_fraction=float(wick_fraction),
+                    wick_ratio=float(min(wick_ratio, 999)),
                     bars_after_last_pivot=int(gap),
                 )
 

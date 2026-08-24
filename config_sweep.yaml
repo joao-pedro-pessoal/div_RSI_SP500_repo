@@ -23,13 +23,31 @@ scanner:
   max_bars_after_pivot: 8
   min_sweep_depth_pct: 0.3
 
-  # --- a recuperacao ("volta praticamente a onde comecou") ---
-  # min_close_position e o parametro mais sensivel de todos:
-  #   0.55 = fecho no topo 45% da vela (permissivo)
-  #   0.75 = fecho quase no topo (exigente)
-  # Comeca em 0.55 e sobe se os alertas parecerem fracos.
+  # --- a recuperacao: O PAVIO E O CRITERIO CENTRAL ---
+  #
+  # min_wick_fraction = pavio a dividir pela AMPLITUDE TOTAL da vela (0..1).
+  #
+  # Nao se usa pavio/corpo: esse racio e instavel -- com corpo perto de zero
+  # dispara para infinito, e uma vela minuscula podia dar racio enorme sem
+  # ter forma nenhuma. A fracao diz exatamente o que interessa.
+  #
+  # Medido (deteccao em cenarios conhecidos vs ruido puro):
+  #
+  #   limiar   detecao   ruido/1000 barras
+  #    0.50      9/10          0.43
+  #    0.65      9/10          0.11   <- escolhido
+  #    0.70      9/10          0.09
+  #    0.80      9/10          0.00
+  #
+  # Apertar de 0.50 para 0.70 nao perde detecao e corta o ruido 4x. 0.65
+  # fica perto desse ganho com margem para velas reais, que nao sao tao
+  # limpas como as sinteticas.
+  #   sobe para 0.75 se os alertas ainda parecerem fracos
+  #   baixa para 0.55 se estiver a perder casos bons
+  min_wick_fraction: 0.65
+
+  # Secundario: a fracao ja faz o trabalho principal, isto e rede.
   min_close_position: 0.55
-  min_wick_ratio: 1.0            # pavio >= corpo
   require_close_above_origin: true
 
   # Janela de alerta EM BARRAS DE CADA TIMEFRAME.

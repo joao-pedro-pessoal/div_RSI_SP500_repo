@@ -133,11 +133,69 @@ class DetectionTests(unittest.TestCase):
         self.assertLess(rate, 3.0, f"{rate:.2f} por 1000 barras — demasiado solto")
 
 
+class WickFractionTests(unittest.TestCase):
+    """
+    O pavio grande e o criterio central deste padrao, nao um extra.
+
+    Mede-se como fracao da amplitude TOTAL da vela, e nao pavio/corpo:
+    o racio falha em velas de corpo grande com pavio enorme, e passa em
+    velas de corpo minusculo com pavio irrelevante.
+    """
+
+    @staticmethod
+    def _with_wick(fraction: float, seed: int = 0) -> pd.DataFrame:
+        from crypto_scanner.sweep import _ascending_run, find_pivots
+        df = scenario("bull_sweep", seed).copy()
+        i = len(df) - 1
+        lows = df["low"].to_numpy()
+        run = _ascending_run(find_pivots(df["low"], 2, 2, "low"), lows, 3, 120, i)
+        origin = lows[run[0]]
+        low = origin - 0.3                    # desce ate a origem
+        op = float(df["open"].iloc[i])
+        total = (op - low) / fraction
+        close = low + total * 0.95
+        if close < op:
+            close = op + (low + total - op) * 0.5
+        for col, val in (("low", low), ("close", close),
+                         ("high", max(low + total, close, op))):
+            df.iloc[i, df.columns.get_loc(col)] = val
+        return df
+
+    def test_large_wicks_pass_small_wicks_rejected(self):
+        p = SweepParams()
+        self.assertIsNone(detect_sweep(self._with_wick(0.40), "X", "4h", p))
+        self.assertIsNone(detect_sweep(self._with_wick(0.55), "X", "4h", p))
+        self.assertIsNotNone(detect_sweep(self._with_wick(0.75), "X", "4h", p))
+        self.assertIsNotNone(detect_sweep(self._with_wick(0.90), "X", "4h", p))
+
+    def test_wick_fraction_is_reported(self):
+        s = detect_sweep(self._with_wick(0.90), "X", "4h")
+        self.assertGreater(s.wick_fraction, 0.8)
+
+
 class ParameterTests(unittest.TestCase):
+    def test_wick_fraction_gates_recovery(self):
+        """O pavio e o criterio central: uma vela sem pavio dominante nao
+        e varrimento, por muito que o fecho esteja no topo."""
+        df = scenario("bull_sweep", 0)
+        self.assertIsNotNone(detect_sweep(df, "X", "4h", SweepParams(min_wick_fraction=0.6)))
+        self.assertIsNone(detect_sweep(df, "X", "4h", SweepParams(min_wick_fraction=0.99)))
+
+    def test_wick_fraction_is_bounded(self):
+        """Ao contrario de pavio/corpo, a fracao nunca dispara para infinito."""
+        s = detect_sweep(scenario("bull_sweep", 0), "X", "4h")
+        self.assertGreaterEqual(s.wick_fraction, 0.0)
+        self.assertLessEqual(s.wick_fraction, 1.0)
+
     def test_close_position_gates_recovery(self):
         df = scenario("bull_sweep", 0)
         self.assertIsNotNone(detect_sweep(df, "X", "4h", SweepParams(min_close_position=0.5)))
         self.assertIsNone(detect_sweep(df, "X", "4h", SweepParams(min_close_position=0.99)))
+
+    def test_wick_fraction_gates(self):
+        df = scenario("bull_sweep", 0)
+        self.assertIsNotNone(detect_sweep(df, "X", "4h", SweepParams(min_wick_fraction=0.6)))
+        self.assertIsNone(detect_sweep(df, "X", "4h", SweepParams(min_wick_fraction=0.99)))
 
     def test_origin_tolerance_gates_depth(self):
         df = scenario("bull_shallow", 0)
