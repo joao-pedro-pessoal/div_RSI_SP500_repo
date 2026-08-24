@@ -43,6 +43,7 @@ INSTRUMENTS_URL = f"{API_ROOT}/public/instruments"
 
 USER_AGENT = "CryptoDivergenceScanner/1.0"
 
+BAR_1H = "1H"
 BAR_4H = "4H"
 PAGE_LIMIT = 100          # maximo da OKX no endpoint historico
 
@@ -54,6 +55,7 @@ DEFAULT_SLEEP = 0.12
 @dataclass
 class ProviderConfig:
     bars: int = 4200              # ~700 dias de barras 4h
+    bar: str = BAR_4H             # "1H", "4H", ... (codigo de bar da OKX)
     sleep_between: float = DEFAULT_SLEEP
     retries: int = 3
     timeout: int = 30
@@ -146,7 +148,7 @@ def fetch_klines(inst_id: str, config: ProviderConfig = ProviderConfig()) -> pd.
     cursor: str | None = None
 
     while len(collected) < config.bars:
-        params = {"instId": inst_id, "bar": BAR_4H, "limit": PAGE_LIMIT}
+        params = {"instId": inst_id, "bar": config.bar, "limit": PAGE_LIMIT}
         if cursor is not None:
             params["after"] = cursor
 

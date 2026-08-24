@@ -1,0 +1,60 @@
+# Scanner de varrimentos de liquidez ("stop hunts").
+#
+# O PADRAO: numa tendencia definida por pivots sucessivos, os stops
+# acumulam-se atras de cada extremo. Uma vela vai ate a ORIGEM da
+# tendencia, varre tudo de uma vez, e fecha de volta perto de onde abriu.
+
+scanner:
+  timeframes: [1h, 4h, 1D, 3D]
+
+  # --- definicao da tendencia ---
+  # Pivots, nao linhas desenhadas: uma linha depende de onde a ancoras, e
+  # mover o ponto inicial duas velas faz o padrao aparecer ou desaparecer.
+  pivot_left: 2
+  pivot_right: 2
+  min_pivots: 3            # minimos ascendentes (ou maximos descendentes)
+  max_trend_bars: 120
+  min_trend_gain_pct: 1.5  # tendencia demasiado plana nao conta
+
+  # --- o varrimento ---
+  # Fracao da amplitude da tendencia. 0.15 = o pavio pode parar 15% acima
+  # da origem e ainda contar. Baixar exige tocar a origem com precisao.
+  origin_tolerance: 0.15
+  max_bars_after_pivot: 8
+  min_sweep_depth_pct: 0.3
+
+  # --- a recuperacao ("volta praticamente a onde comecou") ---
+  # min_close_position e o parametro mais sensivel de todos:
+  #   0.55 = fecho no topo 45% da vela (permissivo)
+  #   0.75 = fecho quase no topo (exigente)
+  # Comeca em 0.55 e sobe se os alertas parecerem fracos.
+  min_close_position: 0.55
+  min_wick_ratio: 1.0            # pavio >= corpo
+  require_close_above_origin: true
+
+  # Janela de alerta EM BARRAS DE CADA TIMEFRAME.
+  # O scan corre 1x/dia mas uma vela de 1h fecha 24 vezes nesse periodo.
+  # Os valores tem margem de sobreposicao; a deduplicacao trata do resto.
+  alert_age_bars:
+    1h: 25
+    4h: 7
+    1D: 2
+    3D: 1
+
+universe:
+  limit: 100
+  exclude_stablecoins: true
+  exclude_wrapped: true
+
+data:
+  # O varrimento so precisa de max_trend_bars + margem, nao dos 4200 do
+  # bot de divergencias. 3000 barras 4h dao ~166 barras de 3D, suficiente.
+  bars_4h: 3000
+  bars_1h: 400
+  sleep_between: 0.12
+
+telegram:
+  send_heartbeat: true
+
+state_file: state/sweep_signals.json
+heartbeat_file: state/sweep_heartbeat.json

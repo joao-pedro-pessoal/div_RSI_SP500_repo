@@ -126,3 +126,38 @@ class TelegramClient:
             f"\U0001F4CA https://www.tradingview.com/chart/?symbol={chart_symbol}"
         )
         return self.send(text)
+
+    def send_sweep(self, sweep) -> bool:
+        """Alerta de varrimento de liquidez."""
+        bullish = sweep.kind == "bullish_sweep"
+        icon = "\U0001F7E2" if bullish else "\U0001F534"
+        title = "BULLISH SWEEP" if bullish else "BEARISH SWEEP"
+        direction = "abaixo" if bullish else "acima"
+
+        base = sweep.symbol.split("-")[0]
+        chart_symbol = urllib.parse.quote(f"OKX:{base}USDT.P")
+
+        def stamp(ts) -> str:
+            return ts.strftime("%Y-%m-%d %H:%M") if sweep.timeframe in ("1h", "4h") else str(ts.date())
+
+        # penetration negativo = o pavio parou ANTES da origem
+        if sweep.penetration_pct >= 0:
+            varrimento = f"furou {sweep.penetration_pct:.2f}% {direction} da origem"
+        else:
+            varrimento = f"parou {abs(sweep.penetration_pct):.2f}% antes da origem"
+
+        text = (
+            f"{icon} {title}\n"
+            f"{base} \u2014 {sweep.timeframe} \u2014 perp\n\n"
+            f"Tend\u00eancia: {sweep.n_pivots} pivots, {sweep.trend_gain_pct:.1f}%\n"
+            f"In\u00edcio ({stamp(sweep.trend_start_time)}): "
+            f"${self._fmt_price(sweep.trend_start_level)}\n\n"
+            f"Extremo da vela: ${self._fmt_price(sweep.sweep_extreme)}\n"
+            f"{varrimento}\n"
+            f"Fecho: ${self._fmt_price(sweep.sweep_close)} "
+            f"(topo {sweep.close_position * 100:.0f}% da vela)\n"
+            f"Pavio/corpo: {sweep.wick_ratio:.1f}x\n\n"
+            f"Vela: {stamp(sweep.sweep_time)}\n"
+            f"\U0001F4CA https://www.tradingview.com/chart/?symbol={chart_symbol}"
+        )
+        return self.send(text)

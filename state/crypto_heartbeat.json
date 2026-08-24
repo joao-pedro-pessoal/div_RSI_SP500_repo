@@ -2,6 +2,7 @@
   "details": {
     "data_quality_skips": 0,
     "download_failures": 0,
+<<<<<<< HEAD
     "downloaded": 100,
     "new_signals": 7,
     "scan_errors": 0,
@@ -10,5 +11,15 @@
     "universe": 100
   },
   "ran_at": "2026-08-24T04:01:48.421087+00:00",
+=======
+    "downloaded": 20,
+    "new_signals": 2,
+    "scan_errors": 0,
+    "send_failures": 0,
+    "sent": 2,
+    "universe": 20
+  },
+  "ran_at": "2026-08-24T08:41:35.738061+00:00",
+>>>>>>> 9f3e92b (scanner de varrimentos de liquidez)
   "status": "ok"
 }
