@@ -282,3 +282,54 @@ class ScannerTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class WorkflowSplitTests(unittest.TestCase):
+    """
+    A separacao por timeframe existe por uma razao medida: antes, uma
+    execucao que so ia analisar 1h descarregava na mesma 3000 barras de
+    4h -- 30 paginas por moeda em vez de 3. Estes testes garantem que as
+    tres configuracoes continuam a pedir apenas o que precisam e a
+    escrever em ficheiros de estado distintos.
+    """
+
+    CONFIGS = ("config_sweep_1h.yaml", "config_sweep_4h.yaml", "config_sweep_daily.yaml")
+
+    def _load(self, name):
+        import yaml
+        path = Path(__file__).resolve().parent.parent / name
+        self.assertTrue(path.exists(), f"{name} em falta")
+        return yaml.safe_load(path.read_text(encoding="utf-8"))
+
+    def test_each_config_covers_distinct_timeframes(self):
+        seen = []
+        for name in self.CONFIGS:
+            seen.extend(self._load(name)["scanner"]["timeframes"])
+        self.assertEqual(sorted(seen), ["1D", "1h", "3D", "4h"],
+                         "timeframes duplicados ou em falta entre configs")
+
+    def test_state_files_are_distinct(self):
+        files = {self._load(n)["state_file"] for n in self.CONFIGS}
+        self.assertEqual(len(files), 3, "configs a partilhar ficheiro de estado")
+        beats = {self._load(n)["heartbeat_file"] for n in self.CONFIGS}
+        self.assertEqual(len(beats), 3)
+
+    def test_intraday_configs_do_not_pull_deep_history(self):
+        """O 1h nao pode arrastar as 3000 barras de 4h do config diario."""
+        one_hour = self._load("config_sweep_1h.yaml")["data"]
+        self.assertLessEqual(one_hour["bars_4h"], 400,
+                             "config de 1h a pedir historico de 4h a mais")
+        daily = self._load("config_sweep_daily.yaml")["data"]
+        self.assertGreaterEqual(daily["bars_4h"], 2200,
+                                "3D precisa de >=120 barras => >=2160 barras de 4h")
+
+    def test_alert_windows_have_slack_but_are_small(self):
+        """
+        Com um workflow por timeframe, a janela so precisa de margem para
+        execucoes falhadas -- nao de cobrir 24h como quando tudo corria
+        uma vez por dia.
+        """
+        for name in self.CONFIGS:
+            for tf, window in self._load(name)["scanner"]["alert_age_bars"].items():
+                self.assertGreaterEqual(window, 2, f"{name}/{tf} sem margem")
+                self.assertLessEqual(window, 5, f"{name}/{tf} janela grande demais")

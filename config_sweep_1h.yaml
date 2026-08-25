@@ -1,3 +1,7 @@
+# Varrimentos em 1h. Workflow proprio, de hora a hora.
+# So descarrega barras de 1h: pedir 4h aqui seria desperdicio puro.
+# Janela de 3 barras = margem para 2 execucoes falhadas.
+#
 # Scanner de varrimentos de liquidez ("stop hunts").
 #
 # O PADRAO: numa tendencia definida por pivots sucessivos, os stops
@@ -5,7 +9,7 @@
 # tendencia, varre tudo de uma vez, e fecha de volta perto de onde abriu.
 
 scanner:
-  timeframes: [1h, 4h, 1D, 3D]
+  timeframes: [1h]
 
   # --- definicao da tendencia ---
   # Pivots, nao linhas desenhadas: uma linha depende de onde a ancoras, e
@@ -51,13 +55,12 @@ scanner:
   require_close_above_origin: true
 
   # Janela de alerta EM BARRAS DE CADA TIMEFRAME.
-  # O scan corre 1x/dia mas uma vela de 1h fecha 24 vezes nesse periodo.
-  # Os valores tem margem de sobreposicao; a deduplicacao trata do resto.
+  #
+  # Agora que cada timeframe tem o seu proprio workflow com a frequencia
+  # certa, a janela so precisa de margem para uma execucao falhada -- nao
+  # de cobrir 24h como antes. Menos janela = menos hipotese de repetidos.
   alert_age_bars:
-    1h: 25
-    4h: 7
-    1D: 2
-    3D: 1
+    1h: 3
 
 universe:
   limit: 100
@@ -67,12 +70,12 @@ universe:
 data:
   # O varrimento so precisa de max_trend_bars + margem, nao dos 4200 do
   # bot de divergencias. 3000 barras 4h dao ~166 barras de 3D, suficiente.
-  bars_4h: 3000
-  bars_1h: 400
+  bars_4h: 300
+  bars_1h: 300
   sleep_between: 0.12
 
 telegram:
   send_heartbeat: true
 
-state_file: state/sweep_signals.json
-heartbeat_file: state/sweep_heartbeat.json
+state_file: state/sweep_1h_signals.json
+heartbeat_file: state/sweep_1h_heartbeat.json

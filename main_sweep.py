@@ -152,7 +152,11 @@ def main() -> int:
         if cfg.get("telegram", {}).get("send_heartbeat", True):
             telegram.send(
                 "\U00002705 Sweep scanner concluído\n"
-                f"Moedas: {summary['downloaded_4h']}/{summary['universe']}\n"
+                # max() e nao downloaded_4h: no workflow de 1h nao se
+                # descarregam barras de 4h, e o heartbeat dizia "0/100".
+                f"Moedas: {max(summary['downloaded_4h'], summary['downloaded_1h'])}"
+                f"/{summary['universe']}\n"
+                f"Timeframes: {', '.join(timeframes)}\n"
                 f"Novos sinais: {summary['new_signals']}\n"
                 f"Alertas enviados: {sent}\n"
                 f"Falhas download: {summary['download_failures']}\n"

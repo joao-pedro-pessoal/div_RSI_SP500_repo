@@ -24,7 +24,7 @@ from crypto_scanner.universe import build_universe
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--config", default="config_crypto.yaml")
+    parser.add_argument("--config", default="config_crypto_4h.yaml")
     parser.add_argument("--dry-run", action="store_true",
                         help="print alerts instead of sending them")
     parser.add_argument("--symbols", nargs="*",

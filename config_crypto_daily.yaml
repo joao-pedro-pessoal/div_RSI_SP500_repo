@@ -1,3 +1,11 @@
+# Divergencias de RSI em 1D, 3D e 1W. Workflow proprio, 1x/dia.
+# 
+# Nao ganha em rapidez -- o atraso estrutural domina. Separar serve
+# para o workflow de 4h ficar leve: 4 paginas por moeda em vez de 42.
+# 
+# 4200 barras de 4h sao ditadas pelo 1W: 4200/42 = 100 barras semanais,
+# o minimo confortavel para pivots de 5+5.
+#
 scanner:
   rsi_period: 14
 
@@ -19,21 +27,17 @@ scanner:
   rsi_alignment_mode: price_pivot
   rsi_pivot_window: 2
 
-  timeframes: [4h, 1D, 3D, 1W]
+  timeframes: [1D, 3D, 1W]
 
   # Janela de alerta EM BARRAS DE CADA TIMEFRAME.
   #
-  # O scan corre 1x/dia, mas uma vela de 4h fecha 6 vezes por dia. Com
-  # janela de 1, perdiam-se 5 em cada 6 confirmacoes de 4h.
-  #
-  # O 4h usa 7 e nao 6 de proposito: a barra extra da sobreposicao, logo
-  # uma execucao atrasada ou saltada nao deixa buraco. A deduplicacao por
-  # signal_id garante que a sobreposicao nao gera repetidos.
+  # Com um workflow por grupo de timeframes, a janela so precisa de margem
+  # para execucoes falhadas -- nao de cobrir 24h como quando tudo corria
+  # uma vez por dia. A deduplicacao por signal_id trata da sobreposicao.
   alert_age_bars:
-    4h: 7
     1D: 2
-    3D: 1
-    1W: 1
+    3D: 2
+    1W: 2
 
 universe:
   limit: 100
@@ -61,5 +65,5 @@ validation:
 telegram:
   send_heartbeat: true
 
-state_file: state/crypto_signals.json
-heartbeat_file: state/crypto_heartbeat.json
+state_file: state/crypto_daily_signals.json
+heartbeat_file: state/crypto_daily_heartbeat.json

@@ -250,7 +250,7 @@ class MainPipelineTests(unittest.TestCase):
         """Nao basta nao rebentar: o caminho de envio tem de correr."""
         import main_crypto as main_module
         self.assertEqual(self._run_main([f"C{i}-USDT-SWAP" for i in range(20)]), 0)
-        state_path = Path("state/crypto_heartbeat.json")
+        state_path = Path("state/crypto_4h_heartbeat.json")
         self.assertTrue(state_path.exists())
         payload = json.loads(state_path.read_text())
         self.assertEqual(payload["status"], "ok")
@@ -394,3 +394,42 @@ class TelegramTopicRoutingTests(unittest.TestCase):
         finally:
             urllib.request.urlopen = original
         self.assertIn("message_thread_id=778", capturado["body"])
+
+
+class DivergenceSplitTests(unittest.TestCase):
+    """
+    A separacao existe porque correr mais vezes so ajuda no 4h: nos
+    timeframes altos o atraso estrutural do pivot_right=5 (120h no 1D,
+    840h no 1W) torna a frequencia de execucao irrelevante.
+    """
+
+    CONFIGS = ("config_crypto_4h.yaml", "config_crypto_daily.yaml")
+
+    def _load(self, name):
+        import yaml
+        path = Path(__file__).resolve().parent.parent / name
+        self.assertTrue(path.exists(), f"{name} em falta")
+        return yaml.safe_load(path.read_text(encoding="utf-8"))
+
+    def test_timeframes_are_split_without_overlap(self):
+        seen = []
+        for name in self.CONFIGS:
+            seen.extend(self._load(name)["scanner"]["timeframes"])
+        self.assertEqual(sorted(seen), ["1D", "1W", "3D", "4h"])
+
+    def test_state_files_are_distinct(self):
+        self.assertEqual(len({self._load(n)["state_file"] for n in self.CONFIGS}), 2)
+        self.assertEqual(len({self._load(n)["heartbeat_file"] for n in self.CONFIGS}), 2)
+
+    def test_intraday_config_is_light(self):
+        """O 4h nao pode arrastar as 4200 barras que so o 1W precisa."""
+        self.assertLessEqual(self._load("config_crypto_4h.yaml")["data"]["bars_4h"], 600)
+        self.assertGreaterEqual(self._load("config_crypto_daily.yaml")["data"]["bars_4h"], 4000)
+
+    def test_pivot_settings_stay_faithful_to_tradingview(self):
+        """Fidelidade ao Pine foi decisao explicita; nao pode driftar."""
+        for name in self.CONFIGS:
+            scanner = self._load(name)["scanner"]
+            self.assertEqual(scanner["pivot_left"], 5)
+            self.assertEqual(scanner["pivot_right"], 5)
+            self.assertEqual(scanner["detector_mode"], "tradingview")

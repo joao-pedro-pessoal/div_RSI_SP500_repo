@@ -1,0 +1,67 @@
+name: Crypto Divergence Daily
+
+on:
+  workflow_dispatch:
+  schedule:
+    # 1x/dia apos a virada do dia UTC. Correr mais vezes nao ajudaria:
+    # o atraso estrutural do pivot_right=5 e de 120h a 840h nestes timeframes.
+    - cron: "20 0 * * *"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: crypto-div-daily
+  cancel-in-progress: false
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run divergence scanner (1D/3D/1W)
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          TELEGRAM_TOPIC_ID: ${{ secrets.TELEGRAM_TOPIC_ID_CRYPTO }}
+        run: python main_crypto.py --config config_crypto_daily.yaml
+
+      - name: Notify workflow failure
+        if: failure()
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          TELEGRAM_TOPIC_ID: ${{ secrets.TELEGRAM_TOPIC_ID_CRYPTO }}
+        run: python -m crypto_scanner.notify_failure
+
+      - name: Persist state
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add state/crypto_daily_signals.json state/crypto_daily_heartbeat.json universe/ || true
+          if git diff --cached --quiet; then
+            echo "nada para guardar"
+            exit 0
+          fi
+          git commit -m "chore: crypto divergence 1D/3D/1W state [skip ci]"
+          for attempt in 1 2 3 4 5; do
+            git pull --rebase --autostash && git push && exit 0
+            echo "push falhou (tentativa $attempt)"
+            sleep $((attempt * 5))
+          done
+          exit 1
