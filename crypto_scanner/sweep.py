@@ -56,7 +56,7 @@ class SweepParams:
     # A fracao da amplitude mede "pavio dominante" de forma estavel.
     #
     # 0.50 = metade da vela e pavio.  0.65 = claramente dominante.
-    min_wick_fraction: float = 0.65
+    min_wick_fraction: float = 0.60
     min_close_position: float = 0.55   # fecho no topo X da amplitude da vela
                                        # (implicado pela fracao, fica como rede)
     min_wick_ratio: float = 0.8        # pavio >= X vezes o corpo (secundario)

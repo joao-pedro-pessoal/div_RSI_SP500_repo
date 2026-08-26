@@ -79,21 +79,6 @@ class TelegramClient:
         return False
 
     @staticmethod
-    def _base_asset(symbol: str) -> str:
-        """
-        Extrai o ativo base de um simbolo de exchange.
-
-        OKX usa "BTC-USDT-SWAP"; outras usam "BTCUSDT". Sem tratar os dois,
-        um simbolo sem tracos produzia "BTCUSDTUSDT.P" no link do
-        TradingView -- um link que abre um grafico inexistente.
-        """
-        base = symbol.split("-")[0].upper()
-        for quote in ("USDT", "USDC", "USD"):
-            if base.endswith(quote) and len(base) > len(quote):
-                return base[: -len(quote)]
-        return base
-
-    @staticmethod
     def _fmt_price(value: float) -> str:
         """
         Crypto prices span many orders of magnitude. A fixed two decimals
@@ -120,7 +105,7 @@ class TelegramClient:
         rsi_arrow = "\u2191" if bullish else "\u2193"
 
         # OKX instId e "BTC-USDT-SWAP"; o TradingView usa "OKX:BTCUSDT.P"
-        base = self._base_asset(signal.ticker)
+        base = signal.ticker.split("-")[0]
         chart_symbol = urllib.parse.quote(f"OKX:{base}USDT.P")
 
         def stamp(ts) -> str:
@@ -149,7 +134,7 @@ class TelegramClient:
         title = "BULLISH SWEEP" if bullish else "BEARISH SWEEP"
         direction = "abaixo" if bullish else "acima"
 
-        base = self._base_asset(sweep.symbol)
+        base = sweep.symbol.split("-")[0]
         chart_symbol = urllib.parse.quote(f"OKX:{base}USDT.P")
 
         def stamp(ts) -> str:
