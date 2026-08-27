@@ -433,3 +433,72 @@ class DivergenceSplitTests(unittest.TestCase):
             self.assertEqual(scanner["pivot_left"], 5)
             self.assertEqual(scanner["pivot_right"], 5)
             self.assertEqual(scanner["detector_mode"], "tradingview")
+
+
+class HighTimeframeEmphasisTests(unittest.TestCase):
+    """
+    Sinais de 1D/3D/1W sao raros e partilham o topico com dezenas de
+    sinais de 4h. Sem destaque visual passam despercebidos.
+    """
+
+    def _sweep(self, timeframe):
+        import sys as _sys
+        from pathlib import Path as _Path
+        _sys.path.insert(0, str(_Path(__file__).resolve().parent))
+        from test_sweep import scenario
+        from crypto_scanner.sweep import detect_sweep
+        s = detect_sweep(scenario("bull_sweep", 0), "BTC-USDT-SWAP", "4h")
+        s.timeframe = timeframe
+        return s
+
+    def _text(self, sweep):
+        import urllib.parse
+        import urllib.request
+        from crypto_scanner.telegram_client import TelegramClient
+        import os
+        os.environ["TELEGRAM_BOT_TOKEN"] = "x:y"
+        os.environ["TELEGRAM_CHAT_ID"] = "-100"
+        cap = {}
+
+        def fake(request, timeout=None):
+            cap["fields"] = urllib.parse.parse_qs(request.data.decode())
+
+            class R:
+                def read(self): return b'{"ok":true}'
+                def __enter__(self): return self
+                def __exit__(self, *a): return False
+            return R()
+
+        original = urllib.request.urlopen
+        try:
+            urllib.request.urlopen = fake
+            TelegramClient._last_send_at = 0.0
+            TelegramClient().send_sweep(sweep)
+        finally:
+            urllib.request.urlopen = original
+        return cap["fields"]
+
+    def test_high_timeframes_get_banner_and_bold(self):
+        for tf in ("1D", "3D", "1W"):
+            fields = self._text(self._sweep(tf))
+            text = fields["text"][0]
+            self.assertIn("TIMEFRAME ALTO", text, tf)
+            self.assertIn("<b>", text, tf)
+            self.assertEqual(fields["parse_mode"], ["HTML"], tf)
+
+    def test_low_timeframes_stay_compact(self):
+        for tf in ("1h", "4h"):
+            text = self._text(self._sweep(tf))["text"][0]
+            self.assertNotIn("TIMEFRAME ALTO", text, tf)
+            self.assertNotIn("<b>", text, tf)
+
+    def test_html_tags_are_balanced(self):
+        """HTML mal formado faz o Telegram rejeitar a mensagem INTEIRA."""
+        import re as _re
+        for tf in ("1D", "3D", "1W", "4h"):
+            text = self._text(self._sweep(tf))["text"][0]
+            self.assertEqual(len(_re.findall(r"<b>", text)),
+                             len(_re.findall(r"</b>", text)), tf)
+            tags = set(_re.findall(r"</?([a-zA-Z]+)[ >]", text))
+            self.assertTrue(tags <= {"b", "i", "u", "s", "code", "pre", "a"},
+                            f"{tf}: tags nao suportadas pelo Telegram: {tags}")
