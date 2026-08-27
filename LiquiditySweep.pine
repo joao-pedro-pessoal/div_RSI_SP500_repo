@@ -1,0 +1,328 @@
+//@version=6
+// =============================================================================
+// Liquidity Sweep Detector — espelho exato do crypto_scanner/sweep.py
+//
+// Os limiares aqui SAO os do bot. Se mudares um, muda no config_sweep_*.yaml
+// tambem, ou o grafico deixa de mostrar o que o Telegram envia.
+//
+// CALIBRACAO
+//   Feita com casos reais marcados no grafico, nao com dados sinteticos.
+//   Minimos observados: pavio 0.55 · fecho 0.55 · pav/corpo 3.19 ·
+//   prof 0.19 ATR · tendencia 0.19 ATR. Os limiares ficam ~20% abaixo.
+//
+// O ALVO E O ULTIMO PIVOT
+//   Nao a origem da tendencia. Medido: a origem e alcancavel em estruturas
+//   curtas (0.2 ATR) e impossivel em tendencias longas (4.5 ATR).
+// =============================================================================
+
+indicator("Liquidity Sweep Detector", overlay = true,
+          max_labels_count = 500, max_lines_count = 100)
+
+// ---------------------------------------------------------------------------
+// Deteccao de CANDIDATOS — de proposito muito larga
+// ---------------------------------------------------------------------------
+grpDetect = "Candidatos (largo de proposito)"
+pivotLeft  = input.int(2, "Pivot esquerda", minval = 1, group = grpDetect)
+pivotRight = input.int(2, "Pivot direita", minval = 1, group = grpDetect)
+minPivots  = input.int(2, "Pivots minimos", minval = 2, group = grpDetect)
+maxTrendBars = input.int(120, "Barras maximas da tendencia", minval = 10, group = grpDetect)
+maxBarsAfterPivot = input.int(20, "Barras maximas apos o ultimo pivot", minval = 1, group = grpDetect)
+atrLen = input.int(14, "Periodo ATR", minval = 2, group = grpDetect)
+
+// Unico criterio para ser CANDIDATO: furou o ultimo pivot e fechou acima.
+// Tudo o resto e apenas medido, nao filtrado.
+requireCloseBack = input.bool(true, "Exigir fecho de volta acima do pivot varrido", group = grpDetect)
+
+// ---------------------------------------------------------------------------
+// Limiares a TESTAR — mexe aqui e ve quantos sobrevivem
+// ---------------------------------------------------------------------------
+grpTest = "Limiares a testar"
+tWickFrac  = input.float(0.45, "Pavio minimo (fracao)", minval = 0.0, maxval = 1.0, step = 0.05, group = grpTest)
+tClosePos  = input.float(0.45, "Fecho minimo (posicao)", minval = 0.0, maxval = 1.0, step = 0.05, group = grpTest)
+tWickRatio = input.float(0.80, "Pavio/corpo minimo", minval = 0.0, step = 0.1, group = grpTest)
+tDepthATR  = input.float(0.10, "Profundidade minima (x ATR)", minval = 0.0, step = 0.05, group = grpTest)
+tTrendATR  = input.float(0.12, "Tendencia minima (x ATR)", minval = 0.0, step = 0.25, group = grpTest)
+
+grpShow = "Mostrar"
+showBull = input.bool(true, "Candidatos bullish", group = grpShow)
+showBear = input.bool(true, "Candidatos bearish", group = grpShow)
+showAll  = input.bool(false, "Marcar tambem os candidatos rejeitados", group = grpShow)
+showPivots = input.bool(true, "Pivots", group = grpShow)
+showStats = input.bool(true, "Tabela de distribuicao", group = grpShow)
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+f2(float v) => na(v) ? "-" : str.tostring(v, "#.##")
+
+// ---------------------------------------------------------------------------
+// Pivots
+// ---------------------------------------------------------------------------
+isPivotLow() =>
+    centre = low[pivotRight]
+    ok = not na(centre)
+    if ok
+        for i = 1 to pivotLeft
+            if na(low[pivotRight + i]) or low[pivotRight + i] < centre
+                ok := false
+        for i = 0 to pivotRight - 1
+            if na(low[i]) or low[i] <= centre
+                ok := false
+    ok
+
+isPivotHigh() =>
+    centre = high[pivotRight]
+    ok = not na(centre)
+    if ok
+        for i = 1 to pivotLeft
+            if na(high[pivotRight + i]) or high[pivotRight + i] > centre
+                ok := false
+        for i = 0 to pivotRight - 1
+            if na(high[i]) or high[i] >= centre
+                ok := false
+    ok
+
+var array<float> lowPrices = array.new_float()
+var array<int>   lowBars   = array.new_int()
+var array<float> highPrices = array.new_float()
+var array<int>   highBars   = array.new_int()
+
+if isPivotLow()
+    array.push(lowPrices, low[pivotRight])
+    array.push(lowBars, bar_index - pivotRight)
+    if array.size(lowPrices) > 250
+        array.shift(lowPrices)
+        array.shift(lowBars)
+
+if isPivotHigh()
+    array.push(highPrices, high[pivotRight])
+    array.push(highBars, bar_index - pivotRight)
+    if array.size(highPrices) > 250
+        array.shift(highPrices)
+        array.shift(highBars)
+
+ascendingRun() =>
+    n = array.size(lowPrices)
+    found = false
+    startIdx = -1
+    runLen = 0
+    if n >= 2 and n >= minPivots
+        last = n - 1
+        lastBar = array.get(lowBars, last)
+        startIdx := last
+        runLen := 1
+        broke = false
+        for k = 1 to last
+            idx = last - k
+            if not broke
+                if array.get(lowPrices, idx) < array.get(lowPrices, startIdx) and (lastBar - array.get(lowBars, idx)) <= maxTrendBars
+                    startIdx := idx
+                    runLen += 1
+                else
+                    broke := true
+        found := runLen >= minPivots
+    [found, startIdx, runLen]
+
+descendingRun() =>
+    n = array.size(highPrices)
+    found = false
+    startIdx = -1
+    runLen = 0
+    if n >= 2 and n >= minPivots
+        last = n - 1
+        lastBar = array.get(highBars, last)
+        startIdx := last
+        runLen := 1
+        broke = false
+        for k = 1 to last
+            idx = last - k
+            if not broke
+                if array.get(highPrices, idx) > array.get(highPrices, startIdx) and (lastBar - array.get(highBars, idx)) <= maxTrendBars
+                    startIdx := idx
+                    runLen += 1
+                else
+                    broke := true
+        found := runLen >= minPivots
+    [found, startIdx, runLen]
+
+// ---------------------------------------------------------------------------
+// Medicao
+// ---------------------------------------------------------------------------
+atr = ta.atr(atrLen)
+atrOK = not na(atr) and atr > 0
+candleRange = high - low
+body = math.abs(close - open)
+
+[bullFound, bullStart, bullLen] = ascendingRun()
+[bearFound, bearStart, bearLen] = descendingRun()
+
+// Acumuladores para a tabela de distribuicao
+var array<float> sampWick = array.new_float()
+var array<float> sampClose = array.new_float()
+var array<float> sampDepth = array.new_float()
+var array<float> sampOrigin = array.new_float()
+var int nCandidates = 0
+var int nPassing = 0
+
+// --- bullish ---------------------------------------------------------------
+bool bullCand = false
+float bWick = na
+float bClose = na
+float bRatio = na
+float bDepth = na
+float bOriginATR = na
+float bTrendATR = na
+int   bGap = na
+
+if showBull and bullFound and atrOK and candleRange > 0
+    lastIdx = array.size(lowPrices) - 1
+    origin  = array.get(lowPrices, bullStart)
+    lastLow = array.get(lowPrices, lastIdx)
+    lastBar = array.get(lowBars, lastIdx)
+    bGap := bar_index - lastBar
+
+    // CANDIDATO = furou o ultimo pivot (e opcionalmente fechou de volta).
+    // Nada mais e exigido: o objetivo e ver os numeros, nao filtrar.
+    crossed = low < lastLow
+    closedBack = not requireCloseBack or close > lastLow
+    bullCand := crossed and closedBack and bGap <= maxBarsAfterPivot
+
+    if bullCand
+        wick = math.min(open, close) - low
+        bWick := wick / candleRange
+        bClose := (close - low) / candleRange
+        bRatio := body > 0 ? wick / body : 999999.0
+        bDepth := (lastLow - low) / atr
+        // negativo = o pavio ficou ACIMA da origem (nao chegou la)
+        bOriginATR := (origin - low) / atr
+        bTrendATR := (lastLow - origin) / atr
+
+        nCandidates += 1
+        array.push(sampWick, bWick)
+        array.push(sampClose, bClose)
+        array.push(sampDepth, bDepth)
+        array.push(sampOrigin, bOriginATR)
+        if bWick >= tWickFrac and bClose >= tClosePos and bRatio >= tWickRatio and bDepth >= tDepthATR and bTrendATR >= tTrendATR
+            nPassing += 1
+
+bullPasses = bullCand and bWick >= tWickFrac and bClose >= tClosePos and bRatio >= tWickRatio and bDepth >= tDepthATR and bTrendATR >= tTrendATR
+
+// --- bearish ---------------------------------------------------------------
+bool bearCand = false
+float sWick = na
+float sClose = na
+float sRatio = na
+float sDepth = na
+float sOriginATR = na
+float sTrendATR = na
+int   sGap = na
+
+if showBear and bearFound and atrOK and candleRange > 0
+    lastIdx = array.size(highPrices) - 1
+    origin   = array.get(highPrices, bearStart)
+    lastHigh = array.get(highPrices, lastIdx)
+    lastBar  = array.get(highBars, lastIdx)
+    sGap := bar_index - lastBar
+
+    crossed = high > lastHigh
+    closedBack = not requireCloseBack or close < lastHigh
+    bearCand := crossed and closedBack and sGap <= maxBarsAfterPivot
+
+    if bearCand
+        wick = high - math.max(open, close)
+        sWick := wick / candleRange
+        sClose := (high - close) / candleRange
+        sRatio := body > 0 ? wick / body : 999999.0
+        sDepth := (high - lastHigh) / atr
+        sOriginATR := (high - origin) / atr
+        sTrendATR := (origin - lastHigh) / atr
+
+bearPasses = bearCand and sWick >= tWickFrac and sClose >= tClosePos and sRatio >= tWickRatio and sDepth >= tDepthATR and sTrendATR >= tTrendATR
+
+// ---------------------------------------------------------------------------
+// Etiquetas com os valores medidos
+// ---------------------------------------------------------------------------
+if bullCand and (showAll or bullPasses) and barstate.isconfirmed
+    txt = (bullPasses ? "PASSA" : "candidato") +
+          "\npavio  " + f2(bWick) +
+          "\nfecho  " + f2(bClose) +
+          "\npav/co " + f2(math.min(bRatio, 99)) +
+          "\nprof   " + f2(bDepth) + " ATR" +
+          "\norigem " + f2(bOriginATR) + " ATR" +
+          "\ntend   " + f2(bTrendATR) + " ATR · " + str.tostring(bullLen) + "p"
+    label.new(bar_index, low, txt, style = label.style_label_up,
+              color = bullPasses ? color.new(color.teal, 10) : color.new(color.gray, 45),
+              textcolor = color.white, size = size.tiny)
+
+if bearCand and (showAll or bearPasses) and barstate.isconfirmed
+    txt = (bearPasses ? "PASSA" : "candidato") +
+          "\npavio  " + f2(sWick) +
+          "\nfecho  " + f2(sClose) +
+          "\npav/co " + f2(math.min(sRatio, 99)) +
+          "\nprof   " + f2(sDepth) + " ATR" +
+          "\norigem " + f2(sOriginATR) + " ATR" +
+          "\ntend   " + f2(sTrendATR) + " ATR · " + str.tostring(bearLen) + "p"
+    label.new(bar_index, high, txt, style = label.style_label_down,
+              color = bearPasses ? color.new(color.red, 10) : color.new(color.gray, 45),
+              textcolor = color.white, size = size.tiny)
+
+plot(showPivots and isPivotLow() ? low[pivotRight] : na, title = "Pivot low",
+     style = plot.style_circles, linewidth = 2, offset = -pivotRight,
+     color = color.new(color.gray, 35))
+plot(showPivots and isPivotHigh() ? high[pivotRight] : na, title = "Pivot high",
+     style = plot.style_circles, linewidth = 2, offset = -pivotRight,
+     color = color.new(color.gray, 35))
+
+bgcolor(bullPasses ? color.new(color.teal, 90) : bearPasses ? color.new(color.red, 90) : na)
+
+// ---------------------------------------------------------------------------
+// Distribuicao — onde caem os teus casos face a todos os candidatos
+// ---------------------------------------------------------------------------
+var table t = table.new(position.top_right, 5, 7, border_width = 1)
+
+pct(array<float> a, int p) =>
+    array.size(a) < 3 ? na : array.percentile_nearest_rank(a, p)
+
+if showStats and barstate.islast
+    table.cell(t, 0, 0, "Distribuicao", bgcolor = color.new(color.gray, 60), text_color = color.white, text_size = size.small)
+    table.cell(t, 1, 0, "min", bgcolor = color.new(color.gray, 60), text_color = color.white, text_size = size.small)
+    table.cell(t, 2, 0, "p25", bgcolor = color.new(color.gray, 60), text_color = color.white, text_size = size.small)
+    table.cell(t, 3, 0, "mediana", bgcolor = color.new(color.gray, 60), text_color = color.white, text_size = size.small)
+    table.cell(t, 4, 0, "max", bgcolor = color.new(color.gray, 60), text_color = color.white, text_size = size.small)
+
+    table.cell(t, 0, 1, "pavio", text_size = size.small)
+    table.cell(t, 1, 1, f2(array.size(sampWick) > 0 ? array.min(sampWick) : na), text_size = size.small)
+    table.cell(t, 2, 1, f2(pct(sampWick, 25)), text_size = size.small)
+    table.cell(t, 3, 1, f2(pct(sampWick, 50)), text_size = size.small)
+    table.cell(t, 4, 1, f2(array.size(sampWick) > 0 ? array.max(sampWick) : na), text_size = size.small)
+
+    table.cell(t, 0, 2, "fecho", text_size = size.small)
+    table.cell(t, 1, 2, f2(array.size(sampClose) > 0 ? array.min(sampClose) : na), text_size = size.small)
+    table.cell(t, 2, 2, f2(pct(sampClose, 25)), text_size = size.small)
+    table.cell(t, 3, 2, f2(pct(sampClose, 50)), text_size = size.small)
+    table.cell(t, 4, 2, f2(array.size(sampClose) > 0 ? array.max(sampClose) : na), text_size = size.small)
+
+    table.cell(t, 0, 3, "prof (ATR)", text_size = size.small)
+    table.cell(t, 1, 3, f2(array.size(sampDepth) > 0 ? array.min(sampDepth) : na), text_size = size.small)
+    table.cell(t, 2, 3, f2(pct(sampDepth, 25)), text_size = size.small)
+    table.cell(t, 3, 3, f2(pct(sampDepth, 50)), text_size = size.small)
+    table.cell(t, 4, 3, f2(array.size(sampDepth) > 0 ? array.max(sampDepth) : na), text_size = size.small)
+
+    table.cell(t, 0, 4, "origem (ATR)", text_size = size.small)
+    table.cell(t, 1, 4, f2(array.size(sampOrigin) > 0 ? array.min(sampOrigin) : na), text_size = size.small)
+    table.cell(t, 2, 4, f2(pct(sampOrigin, 25)), text_size = size.small)
+    table.cell(t, 3, 4, f2(pct(sampOrigin, 50)), text_size = size.small)
+    table.cell(t, 4, 4, f2(array.size(sampOrigin) > 0 ? array.max(sampOrigin) : na), text_size = size.small)
+
+    table.cell(t, 0, 5, "candidatos", text_size = size.small)
+    table.cell(t, 1, 5, str.tostring(nCandidates), text_size = size.small)
+    table.cell(t, 2, 5, "passam", text_size = size.small)
+    table.cell(t, 3, 5, str.tostring(nPassing), text_size = size.small,
+               text_color = nPassing > 0 ? color.teal : color.red)
+    table.cell(t, 4, 5, nCandidates > 0 ? str.tostring(math.round(nPassing * 100.0 / nCandidates)) + "%" : "-", text_size = size.small)
+
+    table.cell(t, 0, 6, "origem negativa =", text_size = size.tiny)
+    table.cell(t, 1, 6, "pavio nao chegou a origem", text_size = size.tiny, text_color = color.orange)
+    table.cell(t, 2, 6, "", text_size = size.tiny)
+    table.cell(t, 3, 6, "", text_size = size.tiny)
+    table.cell(t, 4, 6, "", text_size = size.tiny)

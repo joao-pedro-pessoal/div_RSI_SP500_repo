@@ -34,37 +34,41 @@ SweepKind = Literal["bullish_sweep", "bearish_sweep"]
 
 @dataclass
 class SweepParams:
-    # --- definicao da tendencia ---
+    """
+    Calibrado com casos REAIS marcados pelo Jhonny no TradingView, nao com
+    dados sinteticos.
+
+    A calibracao anterior media pavios de velas inventadas com 93% de pavio
+    e produziu um limiar de 0.65 que rejeitava tudo o que era real: as
+    velas de rejeicao medidas tinham 0.55 a 0.74.
+
+    Casos reais observados (minimos):
+        pavio 0.55 · fecho 0.55 · pavio/corpo 3.19 · prof 0.19 ATR · tend 0.19 ATR
+
+    Os limiares ficam ~20% abaixo desses minimos. A margem existe porque
+    quatro casos sao uma amostra pequena.
+    """
+
+    # --- estrutura ---
     pivot_left: int = 2
     pivot_right: int = 2
-    min_pivots: int = 3          # quantos minimos ascendentes exigimos
-    max_trend_bars: int = 120    # tendencia mais antiga que isto e irrelevante
+    # 2 e nao 3: TODOS os casos validados tinham exatamente 2 pivots. Exigir
+    # 3 rejeitava-os a todos.
+    min_pivots: int = 2
+    max_trend_bars: int = 120
+    max_bars_after_pivot: int = 20
 
-    # --- o varrimento ---
-    # Quao fundo o pavio tem de ir. 0.0 = tem de tocar exatamente a origem;
-    # valores positivos permitem parar um pouco acima; negativos exigem
-    # furar abaixo. Fracao da amplitude da tendencia.
-    origin_tolerance: float = 0.15
-    max_bars_after_pivot: int = 8   # o varrimento tem de vir logo a seguir
-
-    # --- a recuperacao ("volta a onde comecou") ---
-    # CRITERIO PRINCIPAL: o pavio como fracao da amplitude TOTAL da vela.
+    # --- limiares, em ATR onde faz sentido ---
     #
-    # Substitui pavio/corpo como medida central. O racio pavio/corpo tem um
-    # defeito: uma vela com corpo grande falha o racio mesmo com um pavio
-    # enorme, e uma vela com corpo minusculo passa com um pavio irrelevante.
-    # A fracao da amplitude mede "pavio dominante" de forma estavel.
-    #
-    # 0.50 = metade da vela e pavio.  0.65 = claramente dominante.
-    min_wick_fraction: float = 0.60
-    min_close_position: float = 0.55   # fecho no topo X da amplitude da vela
-                                       # (implicado pela fracao, fica como rede)
-    min_wick_ratio: float = 0.8        # pavio >= X vezes o corpo (secundario)
-    require_close_above_origin: bool = True
-
-    # --- qualidade ---
-    min_trend_gain_pct: float = 1.5    # tendencia demasiado plana nao conta
-    min_sweep_depth_pct: float = 0.3   # varrimento tem de ser visivel
+    # Percentagens fixas nao servem: 1.5% numa tendencia de 1h no BTC e
+    # enorme, numa altcoin volatil e ruido. Medido num caso real: a
+    # tendencia tinha 0.63% e era rejeitada por um limiar de 1.5%.
+    atr_period: int = 14
+    min_trend_atr: float = 0.12       # observado minimo: 0.19
+    min_depth_atr: float = 0.10       # observado minimo: 0.19
+    min_wick_fraction: float = 0.45   # observado minimo: 0.55
+    min_close_position: float = 0.45  # observado minimo: 0.55
+    min_wick_ratio: float = 0.8       # observado minimo: 3.19
 
 
 @dataclass
@@ -74,26 +78,21 @@ class Sweep:
     kind: SweepKind
     sweep_time: pd.Timestamp
     trend_start_time: pd.Timestamp
-    trend_start_level: float
+    trend_start_level: float      # origem da tendencia (informativo)
+    swept_level: float            # o pivot que foi varrido — o alvo real
     n_pivots: int
-    trend_gain_pct: float
-    sweep_extreme: float          # o low (bull) ou high (bear) da vela
+    trend_atr: float              # amplitude da tendencia, em ATR
+    sweep_extreme: float
     sweep_close: float
-    penetration_pct: float        # quanto passou da origem, em % do preco
-    close_position: float         # 0 = fecho no minimo da vela, 1 = no maximo
-    wick_fraction: float          # pavio / amplitude total da vela
-    wick_ratio: float             # pavio / corpo
+    depth_atr: float              # quanto passou do pivot varrido, em ATR
+    origin_atr: float             # >0 = passou tambem a origem; <0 = ficou aquem
+    close_position: float
+    wick_fraction: float
+    wick_ratio: float
     bars_after_last_pivot: int
 
     @property
     def signal_id(self) -> str:
-        """
-        Identificador deterministico para deduplicacao.
-
-        Inclui a origem da tendencia, nao so a vela de varrimento: a mesma
-        vela pode qualificar contra tendencias diferentes se os pivots
-        mudarem, e sao sinais distintos.
-        """
         return "|".join([
             "sweep", self.symbol, self.timeframe, self.kind,
             self.trend_start_time.isoformat(), self.sweep_time.isoformat(),
@@ -104,6 +103,15 @@ class Sweep:
         row["sweep_time"] = self.sweep_time.isoformat()
         row["trend_start_time"] = self.trend_start_time.isoformat()
         return row
+
+
+def average_true_range(df: pd.DataFrame, period: int = 14) -> np.ndarray:
+    high = df["high"].to_numpy(dtype=float)
+    low = df["low"].to_numpy(dtype=float)
+    close = df["close"].to_numpy(dtype=float)
+    prev = np.r_[close[0], close[:-1]]
+    tr = np.maximum(high - low, np.maximum(np.abs(high - prev), np.abs(low - prev)))
+    return pd.Series(tr).ewm(alpha=1 / period, adjust=False).mean().to_numpy()
 
 
 def find_pivots(series: pd.Series, left: int, right: int,
@@ -169,14 +177,19 @@ def detect_sweep(df: pd.DataFrame, symbol: str, timeframe: str,
                  p: SweepParams = SweepParams(),
                  bar: int = -1) -> Sweep | None:
     """
-    Avalia UMA vela (por omissao a ultima) como candidata a varrimento.
+    Avalia UMA vela (por omissao a ultima) como varrimento.
 
-    Devolve None se nao qualifica. Testar so a ultima vela e deliberado:
-    o sinal e para agir no fecho, nao para encontrar o padrao no historico.
+    O ALVO E O ULTIMO PIVOT, NAO A ORIGEM
+      A versao anterior exigia que o pavio voltasse a origem da tendencia.
+      Medido em casos reais: funciona em estruturas curtas (a origem ficava
+      a 0.2 ATR) e e impossivel em tendencias longas (a 4.5 ATR). Quanto
+      mais a tendencia corre, mais inalcancavel fica a origem -- a definicao
+      nao escala.
+
+      Varrer o ULTIMO pivot funciona nos dois casos, e e ai que estao os
+      stops mais recentes. A distancia a origem continua a ser reportada
+      em `origin_atr`, para se poder filtrar depois se fizer falta.
     """
-    # O minimo tem de vir do que a DETECAO precisa, nao de max_trend_bars.
-    # Ligar os dois rejeitava series validas: com max_trend_bars=120 exigia
-    # 60 barras, quando uma tendencia de 3 pivots cabe em bem menos.
     needed = p.pivot_left + p.pivot_right + p.min_pivots * 2 + 6
     if len(df) < needed:
         return None
@@ -193,84 +206,85 @@ def detect_sweep(df: pd.DataFrame, symbol: str, timeframe: str,
     if rng <= 0:
         return None
 
+    atr = average_true_range(df, p.atr_period)[idx]
+    if not np.isfinite(atr) or atr <= 0:
+        return None
+
     body = abs(c - o)
     lows = df["low"].to_numpy(dtype=float)
     highs = df["high"].to_numpy(dtype=float)
 
-    # ---------------- bullish: pavio inferior varre minimos ascendentes ---
+    # ---------------- bullish -------------------------------------------
     pivot_lows = find_pivots(df["low"], p.pivot_left, p.pivot_right, "low")
     run = _ascending_run(pivot_lows, lows, p.min_pivots, p.max_trend_bars, idx)
     if run is not None:
-        origin_i = run[0]
-        origin = lows[origin_i]
-        last_pivot_i = run[-1]
-        gap = idx - last_pivot_i
-        span = lows[last_pivot_i] - origin
-        gain_pct = span / origin * 100.0
+        origin_i, last_i = run[0], run[-1]
+        origin, swept = lows[origin_i], lows[last_i]
+        gap = idx - last_i
 
-        if gap <= p.max_bars_after_pivot and gain_pct >= p.min_trend_gain_pct:
-            # O pavio tem de descer ate perto da origem da tendencia --
-            # e ai que estao acumulados os stops de TODA a subida.
-            threshold = origin + span * p.origin_tolerance
-            close_pos = (c - l) / rng
-            wick = (min(o, c) - l)
+        # Gatilho: furou o pivot e fechou de volta acima dele.
+        if gap <= p.max_bars_after_pivot and l < swept and c > swept:
+            wick = min(o, c) - l
             wick_fraction = wick / rng
-            wick_ratio = wick / body if body > 1e-12 else float("inf")
-            depth_pct = (lows[last_pivot_i] - l) / lows[last_pivot_i] * 100.0
+            close_pos = (c - l) / rng
+            wick_ratio = wick / body if body > 1e-12 else 999999.0
+            depth_atr = (swept - l) / atr
+            trend_atr = (swept - origin) / atr
+            origin_atr = (origin - l) / atr
 
             if (
-                l <= threshold
-                and wick_fraction >= p.min_wick_fraction
+                wick_fraction >= p.min_wick_fraction
                 and close_pos >= p.min_close_position
                 and wick_ratio >= p.min_wick_ratio
-                and depth_pct >= p.min_sweep_depth_pct
-                and (not p.require_close_above_origin or c > origin)
+                and depth_atr >= p.min_depth_atr
+                and trend_atr >= p.min_trend_atr
             ):
                 return Sweep(
                     symbol=symbol, timeframe=timeframe, kind="bullish_sweep",
                     sweep_time=df.index[idx], trend_start_time=df.index[origin_i],
-                    trend_start_level=float(origin), n_pivots=len(run),
-                    trend_gain_pct=float(gain_pct), sweep_extreme=l, sweep_close=c,
-                    penetration_pct=float((origin - l) / origin * 100.0),
-                    close_position=float(close_pos), wick_fraction=float(wick_fraction),
+                    trend_start_level=float(origin), swept_level=float(swept),
+                    n_pivots=len(run), trend_atr=float(trend_atr),
+                    sweep_extreme=l, sweep_close=c,
+                    depth_atr=float(depth_atr), origin_atr=float(origin_atr),
+                    close_position=float(close_pos),
+                    wick_fraction=float(wick_fraction),
                     wick_ratio=float(min(wick_ratio, 999)),
                     bars_after_last_pivot=int(gap),
                 )
 
-    # ---------------- bearish: pavio superior varre maximos descendentes --
+    # ---------------- bearish -------------------------------------------
     pivot_highs = find_pivots(df["high"], p.pivot_left, p.pivot_right, "high")
     run = _descending_run(pivot_highs, highs, p.min_pivots, p.max_trend_bars, idx)
     if run is not None:
-        origin_i = run[0]
-        origin = highs[origin_i]
-        last_pivot_i = run[-1]
-        gap = idx - last_pivot_i
-        span = origin - highs[last_pivot_i]
-        gain_pct = span / origin * 100.0
+        origin_i, last_i = run[0], run[-1]
+        origin, swept = highs[origin_i], highs[last_i]
+        gap = idx - last_i
 
-        if gap <= p.max_bars_after_pivot and gain_pct >= p.min_trend_gain_pct:
-            threshold = origin - span * p.origin_tolerance
-            close_pos = (h - c) / rng
-            wick = (h - max(o, c))
+        if gap <= p.max_bars_after_pivot and h > swept and c < swept:
+            wick = h - max(o, c)
             wick_fraction = wick / rng
-            wick_ratio = wick / body if body > 1e-12 else float("inf")
-            depth_pct = (h - highs[last_pivot_i]) / highs[last_pivot_i] * 100.0
+            close_pos = (h - c) / rng
+            wick_ratio = wick / body if body > 1e-12 else 999999.0
+            depth_atr = (h - swept) / atr
+            trend_atr = (origin - swept) / atr
+            origin_atr = (h - origin) / atr
 
             if (
-                h >= threshold
-                and wick_fraction >= p.min_wick_fraction
+                wick_fraction >= p.min_wick_fraction
                 and close_pos >= p.min_close_position
                 and wick_ratio >= p.min_wick_ratio
-                and depth_pct >= p.min_sweep_depth_pct
-                and (not p.require_close_above_origin or c < origin)
+                and depth_atr >= p.min_depth_atr
+                and trend_atr >= p.min_trend_atr
             ):
                 return Sweep(
                     symbol=symbol, timeframe=timeframe, kind="bearish_sweep",
                     sweep_time=df.index[idx], trend_start_time=df.index[origin_i],
-                    trend_start_level=float(origin), n_pivots=len(run),
-                    trend_gain_pct=float(gain_pct), sweep_extreme=h, sweep_close=c,
-                    penetration_pct=float((h - origin) / origin * 100.0),
-                    close_position=float(close_pos), wick_fraction=float(wick_fraction),
+                    trend_start_level=float(origin), swept_level=float(swept),
+                    n_pivots=len(run), trend_atr=float(trend_atr),
+                    sweep_extreme=h, sweep_close=c,
+                    depth_atr=float(depth_atr), origin_atr=float(origin_atr),
+                    close_position=float(close_pos),
+                    wick_fraction=float(wick_fraction),
                     wick_ratio=float(min(wick_ratio, 999)),
                     bars_after_last_pivot=int(gap),
                 )

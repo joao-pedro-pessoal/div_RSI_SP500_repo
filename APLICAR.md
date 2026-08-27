@@ -1,44 +1,47 @@
-# Separacao do bot de divergencias cripto
+# Estado completo — substitui TODOS os zips anteriores de cripto
+
+Este zip tem o estado final de tudo. A ordem de aplicacao deixa de
+importar: nao ha risco de um zip antigo sobrepor alteracoes novas.
 
 ## Aplicar
 
-    tar -xf crypto_divergence_split.zip
+    cd C:\Users\joao2\Downloads\scanner_pronto_para_github\pronto
+    tar -xf estado_completo_cripto.zip
 
-## APAGAR os antigos (substituidos)
+## Verificar ANTES de commitar
 
-    del config_crypto.yaml
-    del .github\workflows\scan_crypto.yml
-    del state\crypto_signals.json
-    del state\crypto_heartbeat.json
+    python -c "import sys; sys.path.insert(0,'.'); from crypto_scanner.sweep import SweepParams; print(SweepParams().min_wick_fraction)"
 
-Se ficarem, tens um workflow duplicado a correr 1x/dia com todos os
-timeframes, alem dos dois novos.
+Tem de imprimir 0.45. Se imprimir outro valor, o tar nao sobrepos.
 
-## Confirmar e enviar
+    python -m unittest discover -s tests -q      -> 89 testes, OK
+    git status                                    -> "On branch main"
 
-    python -m unittest discover -s tests -q     (deve dar 81)
+## Enviar
+
     git add -A
-    git commit -m "separa divergencias cripto por timeframe"
+    git commit -m "estado final dos scanners de cripto"
     git pull --rebase
     git push
 
-## Workflows resultantes
+## APAGAR se ainda existirem (substituidos)
 
-| Workflow                  | Frequencia          | Paginas/moeda |
-|---------------------------|---------------------|---------------|
-| Crypto Divergence 4h      | 0,4,8,12,16,20 UTC  | 4             |
-| Crypto Divergence Daily   | 1x/dia, 00:20 UTC   | 42            |
+    del config_sweep.yaml
+    del config_crypto.yaml
+    del .github\workflows\scan_sweep.yml
+    del .github\workflows\scan_crypto.yml
+    del state\sweep_signals.json state\sweep_heartbeat.json
+    del state\crypto_signals.json state\crypto_heartbeat.json
 
-Ambos usam TELEGRAM_TOPIC_ID_CRYPTO e escrevem no mesmo topico.
-Nao ha secrets novos.
+## Se apanhares conflito no git pull --rebase
 
-## Estado final: 6 workflows
+Resolve, faz "git add", e depois **git rebase --continue** -- NAO git commit.
+Um commit a meio de um rebase deixa-te em detached HEAD.
 
-| Workflow                | Frequencia         | Exec/mes |
-|-------------------------|--------------------|----------|
-| S&P 500                 | 16:45 ET, seg-sex  | 30       |
-| Crypto Divergence 4h    | 6x/dia             | 180      |
-| Crypto Divergence Daily | 1x/dia             | 30       |
-| Sweep 1h                | 24x/dia            | 720      |
-| Sweep 4h                | 6x/dia             | 180      |
-| Sweep Daily             | 1x/dia             | 30       |
+## Secrets necessarios
+
+    TELEGRAM_BOT_TOKEN
+    TELEGRAM_CHAT_ID
+    TELEGRAM_TOPIC_ID          (S&P 500, topico 2)
+    TELEGRAM_TOPIC_ID_CRYPTO   (divergencias, topico 778)
+    TELEGRAM_TOPIC_ID_SWEEP    (varrimentos, topico novo)
