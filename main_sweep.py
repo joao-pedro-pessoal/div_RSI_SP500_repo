@@ -63,6 +63,8 @@ def main() -> int:
     heartbeat_file = cfg.get("heartbeat_file", "state/sweep_heartbeat.json")
     telegram = TelegramClient(dry_run=args.dry_run)
 
+    telegram_cfg = cfg.get("telegram", {})
+
     try:
         if args.symbols:
             symbols = [s.upper() for s in args.symbols]
@@ -75,6 +77,16 @@ def main() -> int:
                 snapshot_dir=None,     # o bot de divergencias ja guarda o ranking
             )
             symbols = [c.exchange_symbol for c in coins]
+
+        # Aviso de inicio. Desligavel por configuracao: o workflow de 1h
+        # corre 24x/dia, e 24 mensagens de "a comecar" mais 24 de "concluido"
+        # afogam os alertas que realmente interessam.
+        if telegram_cfg.get("send_start_notice", True):
+            telegram.send(
+                "\U0001F50D Sweep scanner a começar\n"
+                f"Timeframes: {', '.join(timeframes)}\n"
+                f"Moedas: {len(symbols)}"
+            )
 
         need_4h = any(t in ("4h", "1D", "3D") for t in timeframes)
         need_1h = "1h" in timeframes
@@ -149,7 +161,7 @@ def main() -> int:
         }
         write_heartbeat(Path(heartbeat_file), status="ok", details=summary)
 
-        if cfg.get("telegram", {}).get("send_heartbeat", True):
+        if telegram_cfg.get("send_heartbeat", True):
             telegram.send(
                 "\U00002705 Sweep scanner concluído\n"
                 # max() e nao downloaded_4h: no workflow de 1h nao se

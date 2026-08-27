@@ -1,13 +1,27 @@
-# Varrimentos em 4h. Workflow proprio, de 4 em 4 horas.
-# Janela de 3 barras = margem para 2 execucoes falhadas.
+# Varrimentos de liquidez ("stop hunts").
 #
-# Scanner de varrimentos de liquidez ("stop hunts").
+# CALIBRADO COM CASOS REAIS marcados no TradingView, nao com dados
+# sinteticos. A calibracao anterior usava velas inventadas com 93% de pavio
+# e produzia min_wick_fraction=0.65, que rejeitava TODOS os casos reais
+# (que medem 0.55 a 0.74).
 #
-# O PADRAO: numa tendencia definida por pivots sucessivos, os stops
-# acumulam-se atras de cada extremo. Uma vela vai ate a ORIGEM da
-# tendencia, varre tudo de uma vez, e fecha de volta perto de onde abriu.
+# O ALVO DO VARRIMENTO E O ULTIMO PIVOT, nao a origem da tendencia.
+# Medido: a origem fica alcancavel em estruturas curtas (0.2 ATR) e
+# impossivel em tendencias longas (4.5 ATR). Continua reportada em
+# origin_atr, mas nao bloqueia.
+#
+# VOLUME ESPERADO: ~49 alertas/dia com 100 moedas em ruido puro.
+# Se for demais, sobe min_wick_fraction -- e o parametro mais eficaz:
+#   0.45 -> 49/dia   (atual)
+#   0.50 -> 39/dia
+#   0.55 -> 26/dia
+#   0.60 -> 17/dia
 
 scanner:
+  atr_period: 14
+  min_trend_atr: 0.12
+  min_depth_atr: 0.1
+  min_wick_ratio: 0.8
   timeframes: [4h]
 
   # --- definicao da tendencia ---
@@ -15,16 +29,13 @@ scanner:
   # mover o ponto inicial duas velas faz o padrao aparecer ou desaparecer.
   pivot_left: 2
   pivot_right: 2
-  min_pivots: 3            # minimos ascendentes (ou maximos descendentes)
+  min_pivots: 2
   max_trend_bars: 120
-  min_trend_gain_pct: 1.5  # tendencia demasiado plana nao conta
 
   # --- o varrimento ---
   # Fracao da amplitude da tendencia. 0.15 = o pavio pode parar 15% acima
   # da origem e ainda contar. Baixar exige tocar a origem com precisao.
-  origin_tolerance: 0.15
-  max_bars_after_pivot: 8
-  min_sweep_depth_pct: 0.3
+  max_bars_after_pivot: 20
 
   # --- a recuperacao: O PAVIO E O CRITERIO CENTRAL ---
   #
@@ -47,11 +58,10 @@ scanner:
   # limpas como as sinteticas.
   #   sobe para 0.75 se os alertas ainda parecerem fracos
   #   baixa para 0.55 se estiver a perder casos bons
-  min_wick_fraction: 0.65
+  min_wick_fraction: 0.45
 
   # Secundario: a fracao ja faz o trabalho principal, isto e rede.
-  min_close_position: 0.55
-  require_close_above_origin: true
+  min_close_position: 0.45
 
   # Janela de alerta EM BARRAS DE CADA TIMEFRAME.
   #
@@ -74,6 +84,8 @@ data:
   sleep_between: 0.12
 
 telegram:
+  # corre 6x/dia
+  send_start_notice: true
   send_heartbeat: true
 
 state_file: state/sweep_4h_signals.json

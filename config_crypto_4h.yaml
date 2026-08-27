@@ -62,6 +62,8 @@ validation:
   max_single_bar_move: 0.60
 
 telegram:
+  # corre 6x/dia
+  send_start_notice: true
   send_heartbeat: true
 
 state_file: state/crypto_4h_signals.json

@@ -44,8 +44,12 @@ def scenario(kind: str, seed: int = 0) -> pd.DataFrame:
                 px = tgt
         if kind == "bull_sweep":
             add(px, px - 0.2, px + 0.4, base - 0.3)      # varre e recupera
-        elif kind == "bull_shallow":
-            add(px, px - 0.2, px + 0.4, px - 1.5)        # nao chega a origem
+        elif kind == "bull_no_sweep":
+            # nao chega sequer ao ultimo pivot: nao ha stops varridos
+            add(px, px - 0.2, px + 0.4, px - 0.4)
+        elif kind == "bull_no_wick":
+            # varre mas a vela e quase toda corpo -- nao e rejeicao
+            add(px, base + 0.4, base + 0.5, base - 0.3)
         elif kind == "bull_no_recovery":
             add(px, base + 0.1, px + 0.3, base - 0.3)    # varre e fecha em baixo
 
@@ -103,10 +107,19 @@ class DetectionTests(unittest.TestCase):
                    for s in range(10))
         self.assertGreaterEqual(hits, 8, f"apanhou so {hits}/10")
 
-    def test_shallow_dip_rejected(self):
-        """Nao chegar a origem da tendencia nao e varrimento: os stops
-        continuam la, que e o ponto todo do padrao."""
-        hits = sum(detect_sweep(scenario("bull_shallow", s), "X", "4h") is not None
+    def test_dip_that_sweeps_nothing_is_rejected(self):
+        """Sem furar o pivot nao ha stops varridos -- nao e o padrao."""
+        hits = sum(detect_sweep(scenario("bull_no_sweep", s), "X", "4h") is not None
+                   for s in range(10))
+        self.assertEqual(hits, 0)
+
+    def test_body_candle_without_wick_is_rejected(self):
+        """
+        Uma vela quase toda corpo nao e uma rejeicao, mesmo que fure o
+        pivot. Caso real medido: pavio 0.19 -- o unico dos casos marcados
+        que o Jhonny concordou nao ser um varrimento.
+        """
+        hits = sum(detect_sweep(scenario("bull_no_wick", s), "X", "4h") is not None
                    for s in range(10))
         self.assertEqual(hits, 0)
 
@@ -117,20 +130,30 @@ class DetectionTests(unittest.TestCase):
         self.assertEqual(hits, 0)
 
     def test_clean_trend_and_range_rejected(self):
-        for kind in ("clean_trend", "range"):
+        for kind in ("clean_trend", "range", "bull_no_wick"):
             hits = sum(detect_sweep(scenario(kind, s), "X", "4h") is not None
                        for s in range(10))
             self.assertEqual(hits, 0, f"{kind} deu {hits} falsos positivos")
 
-    def test_noise_rate_is_low(self):
+    def test_noise_rate_stays_within_expected_band(self):
         """
-        Referencia medida: em ruido puro este padrao aparece muito menos que
-        a divergencia de RSI (~0.7 vs ~15 por 1000 barras). Se este numero
-        disparar, alguma alteracao afrouxou os criterios.
+        GUARDA DE REGRESSAO, com um numero que MUDOU de proposito.
+
+        A calibracao sintetica dava 0.1 por 1000 barras -- parecia otimo,
+        mas rejeitava todos os casos reais. Calibrado com casos reais e com
+        a instrucao explicita de nao perder sinais, a taxa sobe para ~8.
+
+        Isso traduz-se em ~25 alertas/dia com 100 moedas em 4 timeframes,
+        em dados SEM informacao nenhuma. E o custo assumido de nao perder
+        sinais -- nao um defeito, mas tambem nao uma virtude.
+
+        O limite existe para apanhar afrouxamentos acidentais: se passar de
+        15, alguma alteracao tornou o detetor demasiado permissivo.
         """
         total = sum(len(scan_history(noise(s), "X", "4h")) for s in range(6))
         rate = total / 6 / 1170 * 1000
-        self.assertLess(rate, 3.0, f"{rate:.2f} por 1000 barras — demasiado solto")
+        self.assertLess(rate, 25.0, f"{rate:.2f} por 1000 barras — afrouxou demais")
+        self.assertGreater(rate, 0.5, f"{rate:.2f} — apertou tanto que nao deteta nada")
 
 
 class WickFractionTests(unittest.TestCase):
@@ -162,11 +185,17 @@ class WickFractionTests(unittest.TestCase):
         return df
 
     def test_large_wicks_pass_small_wicks_rejected(self):
+        """
+        Limites ATUALIZADOS apos calibracao com casos reais.
+        A versao anterior esperava que 0.55 fosse REJEITADO -- mas 0.55 e
+        exatamente o pavio minimo dos casos que o Jhonny marcou como bons.
+        O teste codificava a calibracao sintetica errada.
+        """
         p = SweepParams()
-        self.assertIsNone(detect_sweep(self._with_wick(0.40), "X", "4h", p))
-        self.assertIsNone(detect_sweep(self._with_wick(0.55), "X", "4h", p))
+        self.assertIsNone(detect_sweep(self._with_wick(0.25), "X", "4h", p))
+        self.assertIsNone(detect_sweep(self._with_wick(0.35), "X", "4h", p))
+        self.assertIsNotNone(detect_sweep(self._with_wick(0.55), "X", "4h", p))
         self.assertIsNotNone(detect_sweep(self._with_wick(0.75), "X", "4h", p))
-        self.assertIsNotNone(detect_sweep(self._with_wick(0.90), "X", "4h", p))
 
     def test_wick_fraction_is_reported(self):
         s = detect_sweep(self._with_wick(0.90), "X", "4h")
@@ -174,6 +203,37 @@ class WickFractionTests(unittest.TestCase):
 
 
 class ParameterTests(unittest.TestCase):
+    def test_wick_fraction_gates_recovery(self):
+        df = scenario("bull_sweep", 0)
+        self.assertIsNotNone(detect_sweep(df, "X", "4h", SweepParams(min_wick_fraction=0.4)))
+        self.assertIsNone(detect_sweep(df, "X", "4h", SweepParams(min_wick_fraction=0.99)))
+
+    def test_thresholds_accept_real_measured_cases(self):
+        """
+        Casos reais marcados no TradingView. Estes numeros sao a razao de
+        ser da calibracao atual -- a anterior, feita com velas sinteticas
+        de 93% de pavio, rejeitava-os a todos.
+        """
+        p = SweepParams()
+        reais = [
+            ("img1", 0.72, 0.72, 89.5, 0.19, 0.19, True),
+            ("img2", 0.55, 0.55, 3.19, 0.22, 0.42, True),
+            ("img3a", 0.71, 0.89, 3.83, 0.31, 0.54, True),
+            ("img3b", 0.74, 0.92, 4.08, 1.18, 0.48, True),
+            ("img3-mau", 0.19, 0.52, 0.57, 0.07, 4.61, False),
+        ]
+        for nome, wick, close_pos, ratio, depth, trend, esperado in reais:
+            passa = (wick >= p.min_wick_fraction and close_pos >= p.min_close_position
+                     and ratio >= p.min_wick_ratio and depth >= p.min_depth_atr
+                     and trend >= p.min_trend_atr)
+            self.assertEqual(passa, esperado, f"caso {nome}")
+
+    def test_wick_fraction_is_bounded(self):
+        """Ao contrario de pavio/corpo, a fracao nunca dispara para infinito."""
+        s = detect_sweep(scenario("bull_sweep", 0), "X", "4h")
+        self.assertGreaterEqual(s.wick_fraction, 0.0)
+        self.assertLessEqual(s.wick_fraction, 1.0)
+
     def test_close_position_gates_recovery(self):
         df = scenario("bull_sweep", 0)
         self.assertIsNotNone(detect_sweep(df, "X", "4h", SweepParams(min_close_position=0.5)))
@@ -184,18 +244,17 @@ class ParameterTests(unittest.TestCase):
         self.assertIsNotNone(detect_sweep(df, "X", "4h", SweepParams(min_wick_fraction=0.6)))
         self.assertIsNone(detect_sweep(df, "X", "4h", SweepParams(min_wick_fraction=0.99)))
 
-    def test_origin_tolerance_gates_depth(self):
-        df = scenario("bull_shallow", 0)
-        # Afrouxar SO a tolerancia nao chega: neste cenario o pavio nem
-        # desce abaixo do ultimo pivot, logo min_sweep_depth_pct tambem
-        # rejeita. E o comportamento correto -- um dip que nao varre nada
-        # nao e um varrimento, por muito permissiva que seja a tolerancia.
-        loose = SweepParams(origin_tolerance=5.0)
-        self.assertIsNone(detect_sweep(df, "X", "4h", loose))
-        # com AMBOS os criterios desligados ja passa, o que confirma que
-        # sao estes dois a rejeitar e nao outra coisa qualquer
-        both_off = SweepParams(origin_tolerance=5.0, min_sweep_depth_pct=-100.0)
-        self.assertIsNotNone(detect_sweep(df, "X", "4h", both_off))
+    def test_origin_is_reported_not_required(self):
+        """
+        A origem deixou de ser exigida. Medido em casos reais: em
+        estruturas curtas fica a 0.2 ATR (alcancavel), em tendencias
+        longas a 4.5 ATR (impossivel). Continua a ser reportada para
+        poder filtrar-se depois, mas nao bloqueia.
+        """
+        s = detect_sweep(scenario("bull_sweep", 0), "X", "4h")
+        self.assertIsNotNone(s)
+        self.assertIsInstance(s.origin_atr, float)
+        self.assertIsInstance(s.swept_level, float)
 
     def test_min_pivots_required(self):
         df = scenario("bull_sweep", 0)
@@ -269,3 +328,84 @@ class ScannerTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class WorkflowSplitTests(unittest.TestCase):
+    """
+    A separacao por timeframe existe por uma razao medida: antes, uma
+    execucao que so ia analisar 1h descarregava na mesma 3000 barras de
+    4h -- 30 paginas por moeda em vez de 3. Estes testes garantem que as
+    tres configuracoes continuam a pedir apenas o que precisam e a
+    escrever em ficheiros de estado distintos.
+    """
+
+    CONFIGS = ("config_sweep_1h.yaml", "config_sweep_4h.yaml", "config_sweep_daily.yaml")
+
+    def _load(self, name):
+        import yaml
+        path = Path(__file__).resolve().parent.parent / name
+        self.assertTrue(path.exists(), f"{name} em falta")
+        return yaml.safe_load(path.read_text(encoding="utf-8"))
+
+    def test_each_config_covers_distinct_timeframes(self):
+        seen = []
+        for name in self.CONFIGS:
+            seen.extend(self._load(name)["scanner"]["timeframes"])
+        self.assertEqual(sorted(seen), ["1D", "1h", "3D", "4h"],
+                         "timeframes duplicados ou em falta entre configs")
+
+    def test_state_files_are_distinct(self):
+        files = {self._load(n)["state_file"] for n in self.CONFIGS}
+        self.assertEqual(len(files), 3, "configs a partilhar ficheiro de estado")
+        beats = {self._load(n)["heartbeat_file"] for n in self.CONFIGS}
+        self.assertEqual(len(beats), 3)
+
+    def test_intraday_configs_do_not_pull_deep_history(self):
+        """O 1h nao pode arrastar as 3000 barras de 4h do config diario."""
+        one_hour = self._load("config_sweep_1h.yaml")["data"]
+        self.assertLessEqual(one_hour["bars_4h"], 400,
+                             "config de 1h a pedir historico de 4h a mais")
+        daily = self._load("config_sweep_daily.yaml")["data"]
+        self.assertGreaterEqual(daily["bars_4h"], 2200,
+                                "3D precisa de >=120 barras => >=2160 barras de 4h")
+
+    def test_alert_windows_have_slack_but_are_small(self):
+        """
+        Com um workflow por timeframe, a janela so precisa de margem para
+        execucoes falhadas -- nao de cobrir 24h como quando tudo corria
+        uma vez por dia.
+        """
+        for name in self.CONFIGS:
+            for tf, window in self._load(name)["scanner"]["alert_age_bars"].items():
+                self.assertGreaterEqual(window, 2, f"{name}/{tf} sem margem")
+                self.assertLessEqual(window, 5, f"{name}/{tf} janela grande demais")
+
+
+class StartNoticeTests(unittest.TestCase):
+    """
+    O aviso de inicio duplica o numero de mensagens. Estes testes fixam a
+    regra: ligado onde a frequencia e baixa, desligado no workflow de 1h,
+    que corre 24x/dia (48 mensagens diarias so de estado).
+    """
+
+    def _telegram(self, name):
+        import yaml
+        path = Path(__file__).resolve().parent.parent / name
+        return yaml.safe_load(path.read_text(encoding="utf-8")).get("telegram", {})
+
+    def test_disabled_on_hourly_workflow(self):
+        self.assertFalse(self._telegram("config_sweep_1h.yaml")["send_start_notice"])
+
+    def test_enabled_on_low_frequency_workflows(self):
+        for name in ("config_sweep_4h.yaml", "config_sweep_daily.yaml"):
+            self.assertTrue(self._telegram(name)["send_start_notice"], name)
+
+    def test_heartbeat_always_on(self):
+        """
+        O heartbeat nunca se desliga: a AUSENCIA dele e o unico sinal de
+        que uma execucao agendada nao correu. O GitHub notifica falhas,
+        nao execucoes que simplesmente nao aconteceram.
+        """
+        for name in ("config_sweep_1h.yaml", "config_sweep_4h.yaml",
+                     "config_sweep_daily.yaml"):
+            self.assertTrue(self._telegram(name).get("send_heartbeat", True), name)

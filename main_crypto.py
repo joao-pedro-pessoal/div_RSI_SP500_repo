@@ -53,6 +53,14 @@ def main() -> int:
             )
             symbols = [c.exchange_symbol for c in coins]
 
+        # Ver nota em main_sweep.py sobre o volume de mensagens.
+        if getattr(config.telegram, "send_start_notice", True):
+            telegram.send(
+                "\U0001F50D Crypto divergence a começar\n"
+                f"Timeframes: {', '.join(config.scanner.timeframes)}\n"
+                f"Moedas: {len(symbols)}"
+            )
+
         provider_config = ProviderConfig(
             bars=config.data.bars_4h,
             sleep_between=config.data.sleep_between,

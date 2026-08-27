@@ -68,6 +68,9 @@ class ValidationConfig:
 @dataclass
 class TelegramConfig:
     send_heartbeat: bool = True
+    # Aviso de "a comecar". Util para saber que o workflow disparou, mas
+    # duplica o numero de mensagens -- desliga onde a frequencia e alta.
+    send_start_notice: bool = True
 
 
 @dataclass
