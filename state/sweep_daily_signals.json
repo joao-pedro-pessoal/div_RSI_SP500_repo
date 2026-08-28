@@ -1,1 +1,15 @@
-{"sent_signal_ids": []}
+{
+  "updated_at": "2026-08-28T22:07:37.014445+00:00",
+  "sent_signal_ids": [
+    "sweep|ALGO-USDT-SWAP|1D|bullish_sweep|2026-08-18T00:00:00+00:00|2026-08-26T00:00:00+00:00",
+    "sweep|APT-USDT-SWAP|3D|bearish_sweep|2026-05-09T00:00:00+00:00|2026-08-22T00:00:00+00:00",
+    "sweep|ATOM-USDT-SWAP|3D|bearish_sweep|2026-05-24T00:00:00+00:00|2026-08-22T00:00:00+00:00",
+    "sweep|ETH-USDT-SWAP|1D|bearish_sweep|2026-08-21T00:00:00+00:00|2026-08-27T00:00:00+00:00",
+    "sweep|MANA-USDT-SWAP|3D|bearish_sweep|2026-05-09T00:00:00+00:00|2026-08-22T00:00:00+00:00",
+    "sweep|ONDO-USDT-SWAP|3D|bullish_sweep|2026-06-23T00:00:00+00:00|2026-08-22T00:00:00+00:00",
+    "sweep|PI-USDT-SWAP|3D|bearish_sweep|2026-04-27T00:00:00+00:00|2026-08-22T00:00:00+00:00",
+    "sweep|UB-USDT-SWAP|1D|bearish_sweep|2026-08-04T00:00:00+00:00|2026-08-26T00:00:00+00:00",
+    "sweep|WLD-USDT-SWAP|3D|bearish_sweep|2026-06-17T00:00:00+00:00|2026-08-22T00:00:00+00:00",
+    "sweep|XLM-USDT-SWAP|3D|bearish_sweep|2026-05-30T00:00:00+00:00|2026-08-22T00:00:00+00:00"
+  ]
+}
