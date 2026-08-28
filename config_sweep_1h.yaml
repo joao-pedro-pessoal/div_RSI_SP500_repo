@@ -84,8 +84,9 @@ data:
   sleep_between: 0.12
 
 telegram:
-  # corre 24x/dia -- 48 mensagens diarias so de estado
-  send_start_notice: false
+  # Ligado por pedido explicito. Corre 24x/dia, logo sao 24 mensagens
+  # de inicio + 24 de conclusao. Poe false se afogar os alertas.
+  send_start_notice: true
   send_heartbeat: true
 
 state_file: state/sweep_1h_signals.json

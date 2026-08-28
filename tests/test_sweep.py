@@ -383,21 +383,27 @@ class WorkflowSplitTests(unittest.TestCase):
 
 class StartNoticeTests(unittest.TestCase):
     """
-    O aviso de inicio duplica o numero de mensagens. Estes testes fixam a
-    regra: ligado onde a frequencia e baixa, desligado no workflow de 1h,
-    que corre 24x/dia (48 mensagens diarias so de estado).
+    Aviso de inicio ligado em TODOS os scanners, por pedido explicito.
+
+    Custo assumido: 38 mensagens de inicio por dia mais 38 de conclusao.
+    O scanner de 1h contribui com 48 dessas 76, por correr 24x/dia.
+    Reverter e mudar send_start_notice para false no config respetivo.
     """
+
+    CONFIGS = ("config_sweep_1h.yaml", "config_sweep_4h.yaml",
+               "config_sweep_daily.yaml")
 
     def _telegram(self, name):
         import yaml
         path = Path(__file__).resolve().parent.parent / name
         return yaml.safe_load(path.read_text(encoding="utf-8")).get("telegram", {})
 
-    def test_disabled_on_hourly_workflow(self):
-        self.assertFalse(self._telegram("config_sweep_1h.yaml")["send_start_notice"])
+    def test_enabled_on_all_sweep_scanners(self):
+        for name in self.CONFIGS:
+            self.assertTrue(self._telegram(name)["send_start_notice"], name)
 
-    def test_enabled_on_low_frequency_workflows(self):
-        for name in ("config_sweep_4h.yaml", "config_sweep_daily.yaml"):
+    def test_enabled_on_divergence_scanners(self):
+        for name in ("config_crypto_4h.yaml", "config_crypto_daily.yaml"):
             self.assertTrue(self._telegram(name)["send_start_notice"], name)
 
     def test_heartbeat_always_on(self):
