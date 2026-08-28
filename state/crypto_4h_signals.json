@@ -1,1 +1,8 @@
-{"sent_signal_ids": []}
+{
+  "updated_at": "2026-08-28T21:52:59.166435+00:00",
+  "sent_signal_ids": [
+    "ETH-USDT-SWAP|4h|bearish_regular|tradingview_rsi_pivot|2026-08-23T20:00:00+00:00|2026-08-27T12:00:00+00:00",
+    "KMNO-USDT-SWAP|4h|bearish_regular|tradingview_rsi_pivot|2026-08-25T12:00:00+00:00|2026-08-27T16:00:00+00:00",
+    "LIT-USDT-SWAP|4h|bearish_regular|tradingview_rsi_pivot|2026-08-25T12:00:00+00:00|2026-08-27T20:00:00+00:00"
+  ]
+}
