@@ -1,1 +1,14 @@
-{"ran_at": null, "status": "never_run", "details": {}}
+{
+  "details": {
+    "data_quality_skips": 0,
+    "download_failures": 0,
+    "downloaded": 100,
+    "new_signals": 7,
+    "scan_errors": 0,
+    "send_failures": 0,
+    "sent": 7,
+    "universe": 100
+  },
+  "ran_at": "2026-08-29T00:46:14.604197+00:00",
+  "status": "ok"
+}

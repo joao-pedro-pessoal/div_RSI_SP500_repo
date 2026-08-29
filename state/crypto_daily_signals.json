@@ -1,1 +1,12 @@
-{"sent_signal_ids": []}
+{
+  "updated_at": "2026-08-29T00:46:14.603884+00:00",
+  "sent_signal_ids": [
+    "CFX-USDT-SWAP|3D|bullish_regular|tradingview_rsi_pivot|2026-06-26T00:00:00+00:00|2026-08-04T00:00:00+00:00",
+    "CRO-USDT-SWAP|3D|bullish_regular|tradingview_rsi_pivot|2026-06-26T00:00:00+00:00|2026-08-10T00:00:00+00:00",
+    "GRASS-USDT-SWAP|1W|bearish_regular|tradingview_rsi_pivot|2026-05-18T00:00:00+00:00|2026-06-29T00:00:00+00:00",
+    "LDO-USDT-SWAP|1D|bearish_regular|tradingview_rsi_pivot|2026-07-17T00:00:00+00:00|2026-08-23T00:00:00+00:00",
+    "UNI-USDT-SWAP|1D|bearish_regular|tradingview_rsi_pivot|2026-07-30T00:00:00+00:00|2026-08-23T00:00:00+00:00",
+    "WIF-USDT-SWAP|3D|bullish_regular|tradingview_rsi_pivot|2026-06-08T00:00:00+00:00|2026-08-10T00:00:00+00:00",
+    "XTZ-USDT-SWAP|3D|bullish_regular|tradingview_rsi_pivot|2026-06-29T00:00:00+00:00|2026-08-10T00:00:00+00:00"
+  ]
+}
