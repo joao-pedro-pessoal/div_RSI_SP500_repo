@@ -1,9 +1,11 @@
 {
-  "updated_at": "2026-08-30T08:22:09.401263+00:00",
+  "updated_at": "2026-08-30T12:22:31.285618+00:00",
   "sent_signal_ids": [
     "ATOM-USDT-SWAP|4h|bullish_regular|tradingview_rsi_pivot|2026-08-26T16:00:00+00:00|2026-08-28T16:00:00+00:00",
     "ETH-USDT-SWAP|4h|bearish_regular|tradingview_rsi_pivot|2026-08-23T20:00:00+00:00|2026-08-27T12:00:00+00:00",
     "GRAM-USDT-SWAP|4h|bullish_regular|tradingview_rsi_pivot|2026-08-26T12:00:00+00:00|2026-08-29T00:00:00+00:00",
+    "GRAM-USDT-SWAP|4h|bullish_regular|tradingview_rsi_pivot|2026-08-26T12:00:00+00:00|2026-08-29T04:00:00+00:00",
+    "KITE-USDT-SWAP|4h|bearish_regular|tradingview_rsi_pivot|2026-08-26T20:00:00+00:00|2026-08-29T12:00:00+00:00",
     "KMNO-USDT-SWAP|4h|bearish_regular|tradingview_rsi_pivot|2026-08-25T12:00:00+00:00|2026-08-27T16:00:00+00:00",
     "LIT-USDT-SWAP|4h|bearish_regular|tradingview_rsi_pivot|2026-08-25T12:00:00+00:00|2026-08-27T20:00:00+00:00",
     "PIEVERSE-USDT-SWAP|4h|bearish_regular|tradingview_rsi_pivot|2026-08-26T04:00:00+00:00|2026-08-28T08:00:00+00:00",
