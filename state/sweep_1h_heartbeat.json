@@ -1,7 +1,15 @@
 {
   "details": {
-    "error": "HTTP 429 de api.coingecko.com"
+    "data_quality_skips": 0,
+    "download_failures": 1,
+    "downloaded_1h": 99,
+    "downloaded_4h": 0,
+    "new_signals": 0,
+    "scan_errors": 0,
+    "send_failures": 0,
+    "sent": 0,
+    "universe": 100
   },
-  "ran_at": "2026-08-31T01:13:51.678068+00:00",
-  "status": "error"
+  "ran_at": "2026-08-31T02:16:54.604949+00:00",
+  "status": "ok"
 }
