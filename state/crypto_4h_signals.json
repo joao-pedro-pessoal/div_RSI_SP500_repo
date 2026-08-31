@@ -1,20 +1,27 @@
 {
-  "updated_at": "2026-08-31T16:22:14.903349+00:00",
+  "updated_at": "2026-08-31T20:22:41.194413+00:00",
   "sent_signal_ids": [
+    "APT-USDT-SWAP|4h|bullish_regular|tradingview_rsi_pivot|2026-08-29T00:00:00+00:00|2026-08-30T20:00:00+00:00",
+    "AR-USDT-SWAP|4h|bullish_regular|tradingview_rsi_pivot|2026-08-28T16:00:00+00:00|2026-08-30T20:00:00+00:00",
     "ATOM-USDT-SWAP|4h|bullish_regular|tradingview_rsi_pivot|2026-08-26T16:00:00+00:00|2026-08-28T16:00:00+00:00",
+    "BTC-USDT-SWAP|4h|bullish_regular|tradingview_rsi_pivot|2026-08-29T00:00:00+00:00|2026-08-30T20:00:00+00:00",
     "CRO-USDT-SWAP|4h|bearish_regular|tradingview_rsi_pivot|2026-08-27T16:00:00+00:00|2026-08-30T12:00:00+00:00",
     "ETH-USDT-SWAP|4h|bearish_regular|tradingview_rsi_pivot|2026-08-23T20:00:00+00:00|2026-08-27T12:00:00+00:00",
     "ETH-USDT-SWAP|4h|bearish_regular|tradingview_rsi_pivot|2026-08-27T12:00:00+00:00|2026-08-30T16:00:00+00:00",
     "FLOKI-USDT-SWAP|4h|bearish_regular|tradingview_rsi_pivot|2026-08-29T12:00:00+00:00|2026-08-30T16:00:00+00:00",
     "GRAM-USDT-SWAP|4h|bullish_regular|tradingview_rsi_pivot|2026-08-26T12:00:00+00:00|2026-08-29T00:00:00+00:00",
     "GRAM-USDT-SWAP|4h|bullish_regular|tradingview_rsi_pivot|2026-08-26T12:00:00+00:00|2026-08-29T04:00:00+00:00",
+    "GRAM-USDT-SWAP|4h|bullish_regular|tradingview_rsi_pivot|2026-08-26T12:00:00+00:00|2026-08-30T20:00:00+00:00",
     "KITE-USDT-SWAP|4h|bearish_regular|tradingview_rsi_pivot|2026-08-26T20:00:00+00:00|2026-08-29T12:00:00+00:00",
     "KMNO-USDT-SWAP|4h|bearish_regular|tradingview_rsi_pivot|2026-08-25T12:00:00+00:00|2026-08-27T16:00:00+00:00",
     "LIT-USDT-SWAP|4h|bearish_regular|tradingview_rsi_pivot|2026-08-25T12:00:00+00:00|2026-08-27T20:00:00+00:00",
+    "LTC-USDT-SWAP|4h|bullish_regular|tradingview_rsi_pivot|2026-08-28T12:00:00+00:00|2026-08-30T20:00:00+00:00",
+    "OP-USDT-SWAP|4h|bullish_regular|tradingview_rsi_pivot|2026-08-29T08:00:00+00:00|2026-08-30T20:00:00+00:00",
     "PIEVERSE-USDT-SWAP|4h|bearish_regular|tradingview_rsi_pivot|2026-08-26T04:00:00+00:00|2026-08-28T08:00:00+00:00",
     "RENDER-USDT-SWAP|4h|bearish_regular|tradingview_rsi_pivot|2026-08-23T16:00:00+00:00|2026-08-27T12:00:00+00:00",
     "STABLE-USDT-SWAP|4h|bullish_regular|tradingview_rsi_pivot|2026-08-26T16:00:00+00:00|2026-08-28T16:00:00+00:00",
     "STX-USDT-SWAP|4h|bearish_regular|tradingview_rsi_pivot|2026-08-23T20:00:00+00:00|2026-08-28T08:00:00+00:00",
-    "XPL-USDT-SWAP|4h|bullish_regular|tradingview_rsi_pivot|2026-08-26T12:00:00+00:00|2026-08-29T04:00:00+00:00"
+    "XPL-USDT-SWAP|4h|bullish_regular|tradingview_rsi_pivot|2026-08-26T12:00:00+00:00|2026-08-29T04:00:00+00:00",
+    "XPL-USDT-SWAP|4h|bullish_regular|tradingview_rsi_pivot|2026-08-29T04:00:00+00:00|2026-08-30T20:00:00+00:00"
   ]
 }
