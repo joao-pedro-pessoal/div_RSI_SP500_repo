@@ -1,12 +1,12 @@
 {
-  "captured_at": "2026-08-31T04:19:49.885219+00:00",
+  "captured_at": "2026-08-31T08:19:47.408751+00:00",
   "coins": [
     {
       "rank": 1,
       "coin_id": "bitcoin",
       "symbol": "BTC",
       "name": "Bitcoin",
-      "market_cap": 1557149714150.0,
+      "market_cap": 1567994889427.0,
       "exchange_symbol": "BTC-USDT-SWAP"
     },
     {
@@ -14,7 +14,7 @@
       "coin_id": "ethereum",
       "symbol": "ETH",
       "name": "Ethereum",
-      "market_cap": 291268823545.0,
+      "market_cap": 294261464712.0,
       "exchange_symbol": "ETH-USDT-SWAP"
     },
     {
@@ -22,7 +22,7 @@
       "coin_id": "binancecoin",
       "symbol": "BNB",
       "name": "BNB",
-      "market_cap": 91051659047.0,
+      "market_cap": 91314677351.0,
       "exchange_symbol": "BNB-USDT-SWAP"
     },
     {
@@ -30,7 +30,7 @@
       "coin_id": "ripple",
       "symbol": "XRP",
       "name": "XRP",
-      "market_cap": 84574451811.0,
+      "market_cap": 85993006794.0,
       "exchange_symbol": "XRP-USDT-SWAP"
     },
     {
@@ -38,7 +38,7 @@
       "coin_id": "solana",
       "symbol": "SOL",
       "name": "Solana",
-      "market_cap": 59318456370.0,
+      "market_cap": 60055648040.0,
       "exchange_symbol": "SOL-USDT-SWAP"
     },
     {
@@ -46,7 +46,7 @@
       "coin_id": "tron",
       "symbol": "TRX",
       "name": "TRON",
-      "market_cap": 31956795401.0,
+      "market_cap": 31944794822.0,
       "exchange_symbol": "TRX-USDT-SWAP"
     },
     {
@@ -54,7 +54,7 @@
       "coin_id": "hyperliquid",
       "symbol": "HYPE",
       "name": "Hyperliquid",
-      "market_cap": 17827156324.0,
+      "market_cap": 18069783037.0,
       "exchange_symbol": "HYPE-USDT-SWAP"
     },
     {
@@ -62,7 +62,7 @@
       "coin_id": "zcash",
       "symbol": "ZEC",
       "name": "Zcash",
-      "market_cap": 13839641129.0,
+      "market_cap": 14011919382.0,
       "exchange_symbol": "ZEC-USDT-SWAP"
     },
     {
@@ -70,7 +70,7 @@
       "coin_id": "dogecoin",
       "symbol": "DOGE",
       "name": "Dogecoin",
-      "market_cap": 12776744790.0,
+      "market_cap": 12859403126.0,
       "exchange_symbol": "DOGE-USDT-SWAP"
     },
     {
@@ -78,7 +78,7 @@
       "coin_id": "chainlink",
       "symbol": "LINK",
       "name": "Chainlink",
-      "market_cap": 8318188969.0,
+      "market_cap": 8412309826.0,
       "exchange_symbol": "LINK-USDT-SWAP"
     },
     {
@@ -86,7 +86,7 @@
       "coin_id": "cardano",
       "symbol": "ADA",
       "name": "Cardano",
-      "market_cap": 7245445696.0,
+      "market_cap": 7352055032.0,
       "exchange_symbol": "ADA-USDT-SWAP"
     },
     {
@@ -94,7 +94,7 @@
       "coin_id": "stellar",
       "symbol": "XLM",
       "name": "Stellar",
-      "market_cap": 6053740811.0,
+      "market_cap": 6123646273.0,
       "exchange_symbol": "XLM-USDT-SWAP"
     },
     {
@@ -102,7 +102,7 @@
       "coin_id": "bitcoin-cash",
       "symbol": "BCH",
       "name": "Bitcoin Cash",
-      "market_cap": 4899908274.0,
+      "market_cap": 4973613943.0,
       "exchange_symbol": "BCH-USDT-SWAP"
     },
     {
@@ -110,7 +110,7 @@
       "coin_id": "canton-network",
       "symbol": "CC",
       "name": "Canton",
-      "market_cap": 4669623184.0,
+      "market_cap": 4726503098.0,
       "exchange_symbol": "CC-USDT-SWAP"
     },
     {
@@ -118,7 +118,7 @@
       "coin_id": "litecoin",
       "symbol": "LTC",
       "name": "Litecoin",
-      "market_cap": 3744053801.0,
+      "market_cap": 3764835974.0,
       "exchange_symbol": "LTC-USDT-SWAP"
     },
     {
@@ -126,7 +126,7 @@
       "coin_id": "the-open-network",
       "symbol": "GRAM",
       "name": "Gram (prev. Toncoin)",
-      "market_cap": 3736713634.0,
+      "market_cap": 3736692440.0,
       "exchange_symbol": "GRAM-USDT-SWAP"
     },
     {
@@ -134,7 +134,7 @@
       "coin_id": "hedera-hashgraph",
       "symbol": "HBAR",
       "name": "Hedera",
-      "market_cap": 3222583029.0,
+      "market_cap": 3255565077.0,
       "exchange_symbol": "HBAR-USDT-SWAP"
     },
     {
@@ -142,7 +142,7 @@
       "coin_id": "uniswap",
       "symbol": "UNI",
       "name": "Uniswap",
-      "market_cap": 3119383190.0,
+      "market_cap": 3204405232.0,
       "exchange_symbol": "UNI-USDT-SWAP"
     },
     {
@@ -150,7 +150,7 @@
       "coin_id": "avalanche-2",
       "symbol": "AVAX",
       "name": "Avalanche",
-      "market_cap": 3081694561.0,
+      "market_cap": 3111246984.0,
       "exchange_symbol": "AVAX-USDT-SWAP"
     },
     {
@@ -158,7 +158,7 @@
       "coin_id": "shiba-inu",
       "symbol": "SHIB",
       "name": "Shiba Inu",
-      "market_cap": 2952226612.0,
+      "market_cap": 2969502998.0,
       "exchange_symbol": "SHIB-USDT-SWAP"
     },
     {
@@ -166,7 +166,7 @@
       "coin_id": "sui",
       "symbol": "SUI",
       "name": "Sui",
-      "market_cap": 2905521893.0,
+      "market_cap": 2944125260.0,
       "exchange_symbol": "SUI-USDT-SWAP"
     },
     {
@@ -174,7 +174,7 @@
       "coin_id": "crypto-com-chain",
       "symbol": "CRO",
       "name": "Cronos",
-      "market_cap": 2718355436.0,
+      "market_cap": 2749859535.0,
       "exchange_symbol": "CRO-USDT-SWAP"
     },
     {
@@ -182,7 +182,7 @@
       "coin_id": "near",
       "symbol": "NEAR",
       "name": "NEAR Protocol",
-      "market_cap": 2372185465.0,
+      "market_cap": 2400192116.0,
       "exchange_symbol": "NEAR-USDT-SWAP"
     },
     {
@@ -190,7 +190,7 @@
       "coin_id": "okb",
       "symbol": "OKB",
       "name": "OKB",
-      "market_cap": 2318906308.0,
+      "market_cap": 2338253575.0,
       "exchange_symbol": "OKB-USDT-SWAP"
     },
     {
@@ -198,7 +198,7 @@
       "coin_id": "bittensor",
       "symbol": "TAO",
       "name": "Bittensor",
-      "market_cap": 2183094670.0,
+      "market_cap": 2192928133.0,
       "exchange_symbol": "TAO-USDT-SWAP"
     },
     {
@@ -206,7 +206,7 @@
       "coin_id": "aave",
       "symbol": "AAVE",
       "name": "Aave",
-      "market_cap": 1880100513.0,
+      "market_cap": 1903569291.0,
       "exchange_symbol": "AAVE-USDT-SWAP"
     },
     {
@@ -214,7 +214,7 @@
       "coin_id": "aster-2",
       "symbol": "ASTER",
       "name": "Aster",
-      "market_cap": 1870099149.0,
+      "market_cap": 1880106085.0,
       "exchange_symbol": "ASTER-USDT-SWAP"
     },
     {
@@ -222,7 +222,7 @@
       "coin_id": "world-liberty-financial",
       "symbol": "WLFI",
       "name": "World Liberty Financial",
-      "market_cap": 1826052722.0,
+      "market_cap": 1825649434.0,
       "exchange_symbol": "WLFI-USDT-SWAP"
     },
     {
@@ -230,7 +230,7 @@
       "coin_id": "pump-fun",
       "symbol": "PUMP",
       "name": "Pump.fun",
-      "market_cap": 1675219572.0,
+      "market_cap": 1734012352.0,
       "exchange_symbol": "PUMP-USDT-SWAP"
     },
     {
@@ -238,7 +238,7 @@
       "coin_id": "ondo-finance",
       "symbol": "ONDO",
       "name": "Ondo",
-      "market_cap": 1672377649.0,
+      "market_cap": 1698082838.0,
       "exchange_symbol": "ONDO-USDT-SWAP"
     },
     {
@@ -246,7 +246,7 @@
       "coin_id": "morpho",
       "symbol": "MORPHO",
       "name": "Morpho",
-      "market_cap": 1626676778.0,
+      "market_cap": 1666690236.0,
       "exchange_symbol": "MORPHO-USDT-SWAP"
     },
     {
@@ -254,7 +254,7 @@
       "coin_id": "sky",
       "symbol": "SKY",
       "name": "Sky",
-      "market_cap": 1611225658.0,
+      "market_cap": 1621997761.0,
       "exchange_symbol": "SKY-USDT-SWAP"
     },
     {
@@ -262,7 +262,7 @@
       "coin_id": "pepe",
       "symbol": "PEPE",
       "name": "Pepe",
-      "market_cap": 1441594792.0,
+      "market_cap": 1482980215.0,
       "exchange_symbol": "PEPE-USDT-SWAP"
     },
     {
@@ -270,7 +270,7 @@
       "coin_id": "ethena",
       "symbol": "ENA",
       "name": "Ethena",
-      "market_cap": 1441209105.0,
+      "market_cap": 1478523076.0,
       "exchange_symbol": "ENA-USDT-SWAP"
     },
     {
@@ -278,7 +278,7 @@
       "coin_id": "polkadot",
       "symbol": "DOT",
       "name": "Polkadot",
-      "market_cap": 1391243505.0,
+      "market_cap": 1409673446.0,
       "exchange_symbol": "DOT-USDT-SWAP"
     },
     {
@@ -286,7 +286,7 @@
       "coin_id": "internet-computer",
       "symbol": "ICP",
       "name": "Internet Computer",
-      "market_cap": 1324495501.0,
+      "market_cap": 1341011859.0,
       "exchange_symbol": "ICP-USDT-SWAP"
     },
     {
@@ -294,7 +294,7 @@
       "coin_id": "worldcoin-wld",
       "symbol": "WLD",
       "name": "Worldcoin",
-      "market_cap": 1300956295.0,
+      "market_cap": 1314087497.0,
       "exchange_symbol": "WLD-USDT-SWAP"
     },
     {
@@ -302,7 +302,7 @@
       "coin_id": "ethereum-classic",
       "symbol": "ETC",
       "name": "Ethereum Classic",
-      "market_cap": 1131669515.0,
+      "market_cap": 1140611982.0,
       "exchange_symbol": "ETC-USDT-SWAP"
     },
     {
@@ -310,7 +310,7 @@
       "coin_id": "polygon-ecosystem-token",
       "symbol": "POL",
       "name": "POL (ex-MATIC)",
-      "market_cap": 1016102711.0,
+      "market_cap": 1009069881.0,
       "exchange_symbol": "POL-USDT-SWAP"
     },
     {
@@ -318,31 +318,31 @@
       "coin_id": "pi-network",
       "symbol": "PI",
       "name": "Pi Network",
-      "market_cap": 1005830004.0,
+      "market_cap": 1006753973.0,
       "exchange_symbol": "PI-USDT-SWAP"
     },
     {
       "rank": 41,
-      "coin_id": "quant-network",
-      "symbol": "QNT",
-      "name": "Quant",
-      "market_cap": 877135499.0,
-      "exchange_symbol": "QNT-USDT-SWAP"
-    },
-    {
-      "rank": 42,
       "coin_id": "lighter",
       "symbol": "LIT",
       "name": "Lighter",
-      "market_cap": 873579653.0,
+      "market_cap": 924099222.0,
       "exchange_symbol": "LIT-USDT-SWAP"
+    },
+    {
+      "rank": 42,
+      "coin_id": "quant-network",
+      "symbol": "QNT",
+      "name": "Quant",
+      "market_cap": 888713931.0,
+      "exchange_symbol": "QNT-USDT-SWAP"
     },
     {
       "rank": 43,
       "coin_id": "venice-token",
       "symbol": "VVV",
       "name": "Venice Token",
-      "market_cap": 796977122.0,
+      "market_cap": 816293901.0,
       "exchange_symbol": "VVV-USDT-SWAP"
     },
     {
@@ -350,7 +350,7 @@
       "coin_id": "cosmos",
       "symbol": "ATOM",
       "name": "Cosmos Hub",
-      "market_cap": 768679959.0,
+      "market_cap": 786180629.0,
       "exchange_symbol": "ATOM-USDT-SWAP"
     },
     {
@@ -358,7 +358,7 @@
       "coin_id": "algorand",
       "symbol": "ALGO",
       "name": "Algorand",
-      "market_cap": 761532969.0,
+      "market_cap": 773593985.0,
       "exchange_symbol": "ALGO-USDT-SWAP"
     },
     {
@@ -366,31 +366,31 @@
       "coin_id": "render-token",
       "symbol": "RENDER",
       "name": "Render",
-      "market_cap": 722244175.0,
+      "market_cap": 736473778.0,
       "exchange_symbol": "RENDER-USDT-SWAP"
     },
     {
       "rank": 47,
-      "coin_id": "stable-2",
-      "symbol": "STABLE",
-      "name": "\u200b\u200bStable",
-      "market_cap": 692795985.0,
-      "exchange_symbol": "STABLE-USDT-SWAP"
-    },
-    {
-      "rank": 48,
       "coin_id": "jupiter-exchange-solana",
       "symbol": "JUP",
       "name": "Jupiter",
-      "market_cap": 670963030.0,
+      "market_cap": 686669882.0,
       "exchange_symbol": "JUP-USDT-SWAP"
+    },
+    {
+      "rank": 48,
+      "coin_id": "stable-2",
+      "symbol": "STABLE",
+      "name": "\u200b\u200bStable",
+      "market_cap": 681611263.0,
+      "exchange_symbol": "STABLE-USDT-SWAP"
     },
     {
       "rank": 49,
       "coin_id": "official-trump",
       "symbol": "TRUMP",
       "name": "Official Trump",
-      "market_cap": 585973797.0,
+      "market_cap": 602533053.0,
       "exchange_symbol": "TRUMP-USDT-SWAP"
     },
     {
@@ -398,7 +398,7 @@
       "coin_id": "arbitrum",
       "symbol": "ARB",
       "name": "Arbitrum",
-      "market_cap": 566281955.0,
+      "market_cap": 574373484.0,
       "exchange_symbol": "ARB-USDT-SWAP"
     },
     {
@@ -406,7 +406,7 @@
       "coin_id": "filecoin",
       "symbol": "FIL",
       "name": "Filecoin",
-      "market_cap": 553937588.0,
+      "market_cap": 560944493.0,
       "exchange_symbol": "FIL-USDT-SWAP"
     },
     {
@@ -414,7 +414,7 @@
       "coin_id": "pudgy-penguins",
       "symbol": "PENGU",
       "name": "Pudgy Penguins",
-      "market_cap": 538623977.0,
+      "market_cap": 548166042.0,
       "exchange_symbol": "PENGU-USDT-SWAP"
     },
     {
@@ -422,7 +422,7 @@
       "coin_id": "dash",
       "symbol": "DASH",
       "name": "Dash",
-      "market_cap": 524542183.0,
+      "market_cap": 539773000.0,
       "exchange_symbol": "DASH-USDT-SWAP"
     },
     {
@@ -430,7 +430,7 @@
       "coin_id": "ether-fi",
       "symbol": "ETHFI",
       "name": "Ether.fi",
-      "market_cap": 516508139.0,
+      "market_cap": 529949835.0,
       "exchange_symbol": "ETHFI-USDT-SWAP"
     },
     {
@@ -438,7 +438,7 @@
       "coin_id": "injective-protocol",
       "symbol": "INJ",
       "name": "Injective",
-      "market_cap": 493521022.0,
+      "market_cap": 500283388.0,
       "exchange_symbol": "INJ-USDT-SWAP"
     },
     {
@@ -446,31 +446,31 @@
       "coin_id": "spx6900",
       "symbol": "SPX",
       "name": "SPX6900",
-      "market_cap": 486793700.0,
+      "market_cap": 497258338.0,
       "exchange_symbol": "SPX-USDT-SWAP"
     },
     {
       "rank": 57,
-      "coin_id": "aerodrome-finance",
-      "symbol": "AERO",
-      "name": "Aerodrome Finance",
-      "market_cap": 465055869.0,
-      "exchange_symbol": "AERO-USDT-SWAP"
-    },
-    {
-      "rank": 58,
       "coin_id": "curve-dao-token",
       "symbol": "CRV",
       "name": "Curve DAO",
-      "market_cap": 464862860.0,
+      "market_cap": 476265501.0,
       "exchange_symbol": "CRV-USDT-SWAP"
+    },
+    {
+      "rank": 58,
+      "coin_id": "aerodrome-finance",
+      "symbol": "AERO",
+      "name": "Aerodrome Finance",
+      "market_cap": 469018509.0,
+      "exchange_symbol": "AERO-USDT-SWAP"
     },
     {
       "rank": 59,
       "coin_id": "blockstack",
       "symbol": "STX",
       "name": "Stacks",
-      "market_cap": 456178659.0,
+      "market_cap": 459692516.0,
       "exchange_symbol": "STX-USDT-SWAP"
     },
     {
@@ -478,7 +478,7 @@
       "coin_id": "aptos",
       "symbol": "APT",
       "name": "Aptos",
-      "market_cap": 445941144.0,
+      "market_cap": 448984690.0,
       "exchange_symbol": "APT-USDT-SWAP"
     },
     {
@@ -486,7 +486,7 @@
       "coin_id": "virtual-protocol",
       "symbol": "VIRTUAL",
       "name": "Virtuals Protocol",
-      "market_cap": 437096953.0,
+      "market_cap": 448982858.0,
       "exchange_symbol": "VIRTUAL-USDT-SWAP"
     },
     {
@@ -494,7 +494,7 @@
       "coin_id": "pyth-network",
       "symbol": "PYTH",
       "name": "Pyth Network",
-      "market_cap": 364880375.0,
+      "market_cap": 373389764.0,
       "exchange_symbol": "PYTH-USDT-SWAP"
     },
     {
@@ -502,7 +502,7 @@
       "coin_id": "layerzero",
       "symbol": "ZRO",
       "name": "LayerZero",
-      "market_cap": 358493751.0,
+      "market_cap": 363467964.0,
       "exchange_symbol": "ZRO-USDT-SWAP"
     },
     {
@@ -510,31 +510,31 @@
       "coin_id": "celestia",
       "symbol": "TIA",
       "name": "Celestia",
-      "market_cap": 314039088.0,
+      "market_cap": 315912762.0,
       "exchange_symbol": "TIA-USDT-SWAP"
     },
     {
       "rank": 65,
-      "coin_id": "unibase",
-      "symbol": "UB",
-      "name": "Unibase",
-      "market_cap": 311368532.0,
-      "exchange_symbol": "UB-USDT-SWAP"
-    },
-    {
-      "rank": 66,
       "coin_id": "monad",
       "symbol": "MON",
       "name": "Monad",
-      "market_cap": 310132235.0,
+      "market_cap": 314207296.0,
       "exchange_symbol": "MON-USDT-SWAP"
+    },
+    {
+      "rank": 66,
+      "coin_id": "unibase",
+      "symbol": "UB",
+      "name": "Unibase",
+      "market_cap": 312357213.0,
+      "exchange_symbol": "UB-USDT-SWAP"
     },
     {
       "rank": 67,
       "coin_id": "midnight-3",
       "symbol": "NIGHT",
       "name": "Midnight",
-      "market_cap": 303973197.0,
+      "market_cap": 306557393.0,
       "exchange_symbol": "NIGHT-USDT-SWAP"
     },
     {
@@ -542,7 +542,7 @@
       "coin_id": "sei-network",
       "symbol": "SEI",
       "name": "Sei",
-      "market_cap": 296448816.0,
+      "market_cap": 300262235.0,
       "exchange_symbol": "SEI-USDT-SWAP"
     },
     {
@@ -550,71 +550,71 @@
       "coin_id": "pendle",
       "symbol": "PENDLE",
       "name": "Pendle",
-      "market_cap": 293372282.0,
+      "market_cap": 299491982.0,
       "exchange_symbol": "PENDLE-USDT-SWAP"
     },
     {
       "rank": 70,
-      "coin_id": "kite-2",
-      "symbol": "KITE",
-      "name": "Kite",
-      "market_cap": 290141721.0,
-      "exchange_symbol": "KITE-USDT-SWAP"
-    },
-    {
-      "rank": 71,
       "coin_id": "lido-dao",
       "symbol": "LDO",
       "name": "Lido DAO",
-      "market_cap": 289659626.0,
+      "market_cap": 294020144.0,
       "exchange_symbol": "LDO-USDT-SWAP"
+    },
+    {
+      "rank": 71,
+      "coin_id": "kite-2",
+      "symbol": "KITE",
+      "name": "Kite",
+      "market_cap": 289788373.0,
+      "exchange_symbol": "KITE-USDT-SWAP"
     },
     {
       "rank": 72,
       "coin_id": "pieverse",
       "symbol": "PIEVERSE",
       "name": "Pieverse",
-      "market_cap": 278868832.0,
+      "market_cap": 279584288.0,
       "exchange_symbol": "PIEVERSE-USDT-SWAP"
     },
     {
       "rank": 73,
-      "coin_id": "grass",
-      "symbol": "GRASS",
-      "name": "Grass",
-      "market_cap": 246875422.0,
-      "exchange_symbol": "GRASS-USDT-SWAP"
-    },
-    {
-      "rank": 74,
       "coin_id": "bonk",
       "symbol": "BONK",
       "name": "Bonk",
-      "market_cap": 244809932.0,
+      "market_cap": 248531117.0,
       "exchange_symbol": "BONK-USDT-SWAP"
     },
     {
-      "rank": 75,
+      "rank": 74,
       "coin_id": "plasma",
       "symbol": "XPL",
       "name": "Plasma",
-      "market_cap": 241747893.0,
+      "market_cap": 246026385.0,
       "exchange_symbol": "XPL-USDT-SWAP"
     },
     {
-      "rank": 76,
+      "rank": 75,
       "coin_id": "ethereum-name-service",
       "symbol": "ENS",
       "name": "Ethereum Name Service",
-      "market_cap": 235189021.0,
+      "market_cap": 243522184.0,
       "exchange_symbol": "ENS-USDT-SWAP"
+    },
+    {
+      "rank": 76,
+      "coin_id": "grass",
+      "symbol": "GRASS",
+      "name": "Grass",
+      "market_cap": 241821539.0,
+      "exchange_symbol": "GRASS-USDT-SWAP"
     },
     {
       "rank": 77,
       "coin_id": "conflux-token",
       "symbol": "CFX",
       "name": "Conflux",
-      "market_cap": 232342331.0,
+      "market_cap": 234800010.0,
       "exchange_symbol": "CFX-USDT-SWAP"
     },
     {
@@ -622,7 +622,7 @@
       "coin_id": "tezos",
       "symbol": "XTZ",
       "name": "Tezos",
-      "market_cap": 232264125.0,
+      "market_cap": 234590257.0,
       "exchange_symbol": "XTZ-USDT-SWAP"
     },
     {
@@ -630,7 +630,7 @@
       "coin_id": "floki",
       "symbol": "FLOKI",
       "name": "FLOKI",
-      "market_cap": 231099192.0,
+      "market_cap": 233642299.0,
       "exchange_symbol": "FLOKI-USDT-SWAP"
     },
     {
@@ -638,7 +638,7 @@
       "coin_id": "jito-governance-token",
       "symbol": "JTO",
       "name": "Jito",
-      "market_cap": 224067616.0,
+      "market_cap": 229760446.0,
       "exchange_symbol": "JTO-USDT-SWAP"
     },
     {
@@ -646,7 +646,7 @@
       "coin_id": "raydium",
       "symbol": "RAY",
       "name": "Raydium",
-      "market_cap": 207579138.0,
+      "market_cap": 211227231.0,
       "exchange_symbol": "RAY-USDT-SWAP"
     },
     {
@@ -654,7 +654,7 @@
       "coin_id": "convex-finance",
       "symbol": "CVX",
       "name": "Convex Finance",
-      "market_cap": 203989107.0,
+      "market_cap": 207751471.0,
       "exchange_symbol": "CVX-USDT-SWAP"
     },
     {
@@ -662,7 +662,7 @@
       "coin_id": "syrup",
       "symbol": "SYRUP",
       "name": "Maple Finance",
-      "market_cap": 203179017.0,
+      "market_cap": 205259391.0,
       "exchange_symbol": "SYRUP-USDT-SWAP"
     },
     {
@@ -670,7 +670,7 @@
       "coin_id": "optimism",
       "symbol": "OP",
       "name": "Optimism",
-      "market_cap": 198194856.0,
+      "market_cap": 200275721.0,
       "exchange_symbol": "OP-USDT-SWAP"
     },
     {
@@ -678,31 +678,31 @@
       "coin_id": "dogwifcoin",
       "symbol": "WIF",
       "name": "dogwifhat",
-      "market_cap": 190671124.0,
+      "market_cap": 191875953.0,
       "exchange_symbol": "WIF-USDT-SWAP"
     },
     {
       "rank": 86,
-      "coin_id": "doublezero",
-      "symbol": "2Z",
-      "name": "DoubleZero",
-      "market_cap": 185360354.0,
-      "exchange_symbol": "2Z-USDT-SWAP"
-    },
-    {
-      "rank": 87,
       "coin_id": "compound-governance-token",
       "symbol": "COMP",
       "name": "Compound",
-      "market_cap": 184467647.0,
+      "market_cap": 190532658.0,
       "exchange_symbol": "COMP-USDT-SWAP"
+    },
+    {
+      "rank": 87,
+      "coin_id": "doublezero",
+      "symbol": "2Z",
+      "name": "DoubleZero",
+      "market_cap": 188392860.0,
+      "exchange_symbol": "2Z-USDT-SWAP"
     },
     {
       "rank": 88,
       "coin_id": "iota",
       "symbol": "IOTA",
       "name": "IOTA",
-      "market_cap": 182593108.0,
+      "market_cap": 184138760.0,
       "exchange_symbol": "IOTA-USDT-SWAP"
     },
     {
@@ -710,7 +710,7 @@
       "coin_id": "the-graph",
       "symbol": "GRT",
       "name": "The Graph",
-      "market_cap": 177367425.0,
+      "market_cap": 178475723.0,
       "exchange_symbol": "GRT-USDT-SWAP"
     },
     {
@@ -718,39 +718,39 @@
       "coin_id": "starknet",
       "symbol": "STRK",
       "name": "Starknet",
-      "market_cap": 175574423.0,
+      "market_cap": 178349769.0,
       "exchange_symbol": "STRK-USDT-SWAP"
     },
     {
       "rank": 91,
-      "coin_id": "eigenlayer",
-      "symbol": "EIGEN",
-      "name": "EigenCloud (prev. EigenLayer)",
-      "market_cap": 172862854.0,
-      "exchange_symbol": "EIGEN-USDT-SWAP"
-    },
-    {
-      "rank": 92,
-      "coin_id": "theta-token",
-      "symbol": "THETA",
-      "name": "Theta Network",
-      "market_cap": 170481620.0,
-      "exchange_symbol": "THETA-USDT-SWAP"
-    },
-    {
-      "rank": 93,
       "coin_id": "fartcoin",
       "symbol": "FARTCOIN",
       "name": "Fartcoin",
-      "market_cap": 170079493.0,
+      "market_cap": 175756401.0,
       "exchange_symbol": "FARTCOIN-USDT-SWAP"
+    },
+    {
+      "rank": 92,
+      "coin_id": "eigenlayer",
+      "symbol": "EIGEN",
+      "name": "EigenCloud (prev. EigenLayer)",
+      "market_cap": 175421678.0,
+      "exchange_symbol": "EIGEN-USDT-SWAP"
+    },
+    {
+      "rank": 93,
+      "coin_id": "theta-token",
+      "symbol": "THETA",
+      "name": "Theta Network",
+      "market_cap": 169192615.0,
+      "exchange_symbol": "THETA-USDT-SWAP"
     },
     {
       "rank": 94,
       "coin_id": "axie-infinity",
       "symbol": "AXS",
       "name": "Axie Infinity",
-      "market_cap": 153730090.0,
+      "market_cap": 157885803.0,
       "exchange_symbol": "AXS-USDT-SWAP"
     },
     {
@@ -758,7 +758,7 @@
       "coin_id": "humanity",
       "symbol": "H",
       "name": "Humanity",
-      "market_cap": 151210149.0,
+      "market_cap": 149855498.0,
       "exchange_symbol": "H-USDT-SWAP"
     },
     {
@@ -766,7 +766,7 @@
       "coin_id": "neo",
       "symbol": "NEO",
       "name": "NEO",
-      "market_cap": 143304779.0,
+      "market_cap": 144211459.0,
       "exchange_symbol": "NEO-USDT-SWAP"
     },
     {
@@ -774,7 +774,7 @@
       "coin_id": "chiliz",
       "symbol": "CHZ",
       "name": "Chiliz",
-      "market_cap": 140598640.0,
+      "market_cap": 140870947.0,
       "exchange_symbol": "CHZ-USDT-SWAP"
     },
     {
@@ -782,23 +782,23 @@
       "coin_id": "decentraland",
       "symbol": "MANA",
       "name": "Decentraland",
-      "market_cap": 139644279.0,
+      "market_cap": 139737526.0,
       "exchange_symbol": "MANA-USDT-SWAP"
     },
     {
       "rank": 99,
-      "coin_id": "kamino",
-      "symbol": "KMNO",
-      "name": "Kamino",
-      "market_cap": 137010536.0,
-      "exchange_symbol": "KMNO-USDT-SWAP"
+      "coin_id": "arweave",
+      "symbol": "AR",
+      "name": "Arweave",
+      "market_cap": 137935316.0,
+      "exchange_symbol": "AR-USDT-SWAP"
     },
     {
       "rank": 100,
       "coin_id": "apecoin",
       "symbol": "APE",
       "name": "ApeCoin",
-      "market_cap": 136499385.0,
+      "market_cap": 137648787.0,
       "exchange_symbol": "APE-USDT-SWAP"
     }
   ]
