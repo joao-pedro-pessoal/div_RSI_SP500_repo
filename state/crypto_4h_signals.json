@@ -1,11 +1,12 @@
 {
-  "updated_at": "2026-09-01T04:28:18.872179+00:00",
+  "updated_at": "2026-09-01T08:31:04.564050+00:00",
   "sent_signal_ids": [
     "APT-USDT-SWAP|4h|bullish_regular|tradingview_rsi_pivot|2026-08-29T00:00:00+00:00|2026-08-30T20:00:00+00:00",
     "AR-USDT-SWAP|4h|bullish_regular|tradingview_rsi_pivot|2026-08-28T16:00:00+00:00|2026-08-30T20:00:00+00:00",
     "ATOM-USDT-SWAP|4h|bullish_regular|tradingview_rsi_pivot|2026-08-26T16:00:00+00:00|2026-08-28T16:00:00+00:00",
     "BTC-USDT-SWAP|4h|bullish_regular|tradingview_rsi_pivot|2026-08-29T00:00:00+00:00|2026-08-30T20:00:00+00:00",
     "CRO-USDT-SWAP|4h|bearish_regular|tradingview_rsi_pivot|2026-08-27T16:00:00+00:00|2026-08-30T12:00:00+00:00",
+    "CRO-USDT-SWAP|4h|bullish_regular|tradingview_rsi_pivot|2026-08-28T16:00:00+00:00|2026-08-31T08:00:00+00:00",
     "ETH-USDT-SWAP|4h|bearish_regular|tradingview_rsi_pivot|2026-08-23T20:00:00+00:00|2026-08-27T12:00:00+00:00",
     "ETH-USDT-SWAP|4h|bearish_regular|tradingview_rsi_pivot|2026-08-27T12:00:00+00:00|2026-08-30T16:00:00+00:00",
     "FLOKI-USDT-SWAP|4h|bearish_regular|tradingview_rsi_pivot|2026-08-29T12:00:00+00:00|2026-08-30T16:00:00+00:00",
