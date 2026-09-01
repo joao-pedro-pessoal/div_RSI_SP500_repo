@@ -1,14 +1,14 @@
 {
   "details": {
-    "data_quality_skips": 46,
+    "data_quality_skips": 39,
     "download_failures": 0,
     "downloaded": 503,
-    "new_signals": 3,
+    "new_signals": 14,
     "scan_errors": 0,
     "send_failures": 0,
-    "sent": 3,
+    "sent": 14,
     "universe": 503
   },
-  "ran_at": "2026-08-31T20:53:52.510151+00:00",
+  "ran_at": "2026-09-01T20:57:45.229306+00:00",
   "status": "ok"
 }
