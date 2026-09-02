@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-09-02T07:22:44.332539+00:00",
+  "updated_at": "2026-09-02T08:24:49.672634+00:00",
   "sent_signal_ids": [
     "sweep|2Z-USDT-SWAP|1h|bearish_sweep|2026-08-31T11:00:00+00:00|2026-09-01T12:00:00+00:00",
     "sweep|2Z-USDT-SWAP|1h|bullish_sweep|2026-08-26T15:00:00+00:00|2026-08-27T07:00:00+00:00",
@@ -131,6 +131,7 @@
     "sweep|LDO-USDT-SWAP|1h|bullish_sweep|2026-08-31T14:00:00+00:00|2026-09-01T16:00:00+00:00",
     "sweep|LDO-USDT-SWAP|1h|bullish_sweep|2026-09-01T16:00:00+00:00|2026-09-02T01:00:00+00:00",
     "sweep|LINK-USDT-SWAP|1h|bearish_sweep|2026-09-01T05:00:00+00:00|2026-09-02T03:00:00+00:00",
+    "sweep|LINK-USDT-SWAP|1h|bearish_sweep|2026-09-01T05:00:00+00:00|2026-09-02T07:00:00+00:00",
     "sweep|LINK-USDT-SWAP|1h|bullish_sweep|2026-08-29T08:00:00+00:00|2026-08-30T04:00:00+00:00",
     "sweep|LIT-USDT-SWAP|1h|bearish_sweep|2026-08-30T19:00:00+00:00|2026-08-31T16:00:00+00:00",
     "sweep|LTC-USDT-SWAP|1h|bearish_sweep|2026-09-01T22:00:00+00:00|2026-09-02T06:00:00+00:00",
