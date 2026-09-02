@@ -3,12 +3,12 @@
     "data_quality_skips": 0,
     "download_failures": 0,
     "downloaded": 100,
-    "new_signals": 0,
+    "new_signals": 2,
     "scan_errors": 0,
     "send_failures": 0,
-    "sent": 0,
+    "sent": 2,
     "universe": 100
   },
-  "ran_at": "2026-09-02T16:30:00.586278+00:00",
+  "ran_at": "2026-09-02T20:28:58.537413+00:00",
   "status": "ok"
 }
