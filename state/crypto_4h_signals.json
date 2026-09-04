@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-09-04T08:30:04.757082+00:00",
+  "updated_at": "2026-09-04T12:34:06.664406+00:00",
   "sent_signal_ids": [
     "APT-USDT-SWAP|4h|bullish_regular|tradingview_rsi_pivot|2026-08-29T00:00:00+00:00|2026-08-30T20:00:00+00:00",
     "AR-USDT-SWAP|4h|bullish_regular|tradingview_rsi_pivot|2026-08-28T16:00:00+00:00|2026-08-30T20:00:00+00:00",
@@ -25,6 +25,7 @@
     "LIT-USDT-SWAP|4h|bearish_regular|tradingview_rsi_pivot|2026-08-25T12:00:00+00:00|2026-08-27T20:00:00+00:00",
     "LTC-USDT-SWAP|4h|bullish_regular|tradingview_rsi_pivot|2026-08-28T12:00:00+00:00|2026-08-30T20:00:00+00:00",
     "MORPHO-USDT-SWAP|4h|bearish_regular|tradingview_rsi_pivot|2026-08-31T12:00:00+00:00|2026-09-02T00:00:00+00:00",
+    "OP-USDT-SWAP|4h|bearish_regular|tradingview_rsi_pivot|2026-09-01T12:00:00+00:00|2026-09-03T12:00:00+00:00",
     "OP-USDT-SWAP|4h|bullish_regular|tradingview_rsi_pivot|2026-08-29T08:00:00+00:00|2026-08-30T20:00:00+00:00",
     "PIEVERSE-USDT-SWAP|4h|bearish_regular|tradingview_rsi_pivot|2026-08-26T04:00:00+00:00|2026-08-28T08:00:00+00:00",
     "POL-USDT-SWAP|4h|bullish_regular|tradingview_rsi_pivot|2026-08-31T08:00:00+00:00|2026-09-01T20:00:00+00:00",
