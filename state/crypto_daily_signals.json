@@ -1,6 +1,7 @@
 {
-  "updated_at": "2026-09-04T00:58:17.354037+00:00",
+  "updated_at": "2026-09-05T00:55:01.126481+00:00",
   "sent_signal_ids": [
+    "APT-USDT-SWAP|1D|bullish_regular|tradingview_rsi_pivot|2026-08-16T00:00:00+00:00|2026-08-30T00:00:00+00:00",
     "ARB-USDT-SWAP|3D|bullish_regular|tradingview_rsi_pivot|2026-06-08T00:00:00+00:00|2026-08-13T00:00:00+00:00",
     "BCH-USDT-SWAP|3D|bullish_regular|tradingview_rsi_pivot|2026-07-23T00:00:00+00:00|2026-08-13T00:00:00+00:00",
     "CFX-USDT-SWAP|3D|bullish_regular|tradingview_rsi_pivot|2026-06-26T00:00:00+00:00|2026-08-04T00:00:00+00:00",
