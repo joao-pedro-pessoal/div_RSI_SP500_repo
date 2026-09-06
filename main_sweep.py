@@ -133,18 +133,18 @@ def main() -> int:
                 if not state.contains(signal.signal_id):
                     new_signals.append(signal)
 
-        sent = 0
-        send_failures = 0
+        # Envio AGRUPADO. Medido em producao: 73 alertas individuais
+        # demoraram ~53 min por causa dos 429 do Telegram, e o job era morto
+        # pelo timeout antes de acabar. Dez sinais por mensagem reduzem 73
+        # envios a 8.
         ordered = sorted(new_signals, key=lambda s: (s.timeframe, s.symbol, s.kind))
-        for index, signal in enumerate(ordered, start=1):
-            if telegram.send_sweep(signal):
-                state.mark_sent(signal.signal_id)
-                sent += 1
-            else:
-                send_failures += 1
-            if not args.dry_run and index % 5 == 0:
-                state.save()
+        sent, send_failures = telegram.send_sweeps(ordered)
 
+        # So se marca como enviado o que saiu. Se o envio falhou, o sinal
+        # volta a ser candidato na proxima execucao.
+        if sent > 0:
+            for signal in ordered[:sent] if send_failures else ordered:
+                state.mark_sent(signal.signal_id)
         if not args.dry_run:
             state.save()
 

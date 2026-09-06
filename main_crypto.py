@@ -93,18 +93,13 @@ def main() -> int:
         # State is saved during the loop, not only after it. If the process
         # dies midway, already-delivered alerts stay marked and are not
         # re-sent on the next run.
-        sent = 0
-        send_failures = 0
+        # Ver nota em main_sweep.py sobre o envio agrupado.
         ordered = sorted(new_signals, key=lambda x: (x.timeframe, x.ticker, x.kind))
-        for index, signal in enumerate(ordered, start=1):
-            if telegram.send_signal(signal):
-                state.mark_sent(signal.signal_id)
-                sent += 1
-            else:
-                send_failures += 1
-            if not args.dry_run and index % 5 == 0:
-                state.save()
+        sent, send_failures = telegram.send_signals(ordered)
 
+        if sent > 0:
+            for signal in ordered[:sent] if send_failures else ordered:
+                state.mark_sent(signal.signal_id)
         if not args.dry_run:
             state.save()
 

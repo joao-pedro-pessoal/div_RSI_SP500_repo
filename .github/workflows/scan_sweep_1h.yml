@@ -3,28 +3,30 @@ name: Sweep Scanner 1h
 on:
   workflow_dispatch:
   schedule:
-    # 10 minutos ANTES da hora, de proposito.
-    #
-    # Os agendamentos do GitHub nao sao pontuais: um cron para os :05 pode
-    # disparar aos :17. Arrancando as :50 o job entra na fila mais cedo e o
-    # passo seguinte alinha-o ao minuto certo.
-    #
-    # Se o proprio gatilho atrasar muito, o wait_until.py deteta e corre ja
-    # -- nunca fica a espera de uma hora inteira.
-    - cron: "50 * * * *"
+    # De hora a hora, aos 5 minutos. Cripto negoceia 24/7 e os
+    # varrimentos acontecem muito de madrugada, quando ha menos liquidez
+    # e os stops sao mais faceis de varrer.
+    - cron: "5 * * * *"
 
 permissions:
   contents: write
 
 concurrency:
+  # Grupo POR TIMEFRAME, nao partilhado com os outros scanners.
+  #
+  # Antes todos usavam "trading-scanners" para evitar conflitos de push.
+  # Isso deixou de servir: o de 1h corre 24x/dia e ficaria a bloquear os
+  # outros. Como cada workflow escreve o SEU ficheiro de estado, o rebase
+  # resolve sozinho -- o grupo so precisa de impedir que a mesma workflow
+  # se sobreponha a si propria.
   group: sweep-1h
   cancel-in-progress: false
 
 jobs:
   scan:
     runs-on: ubuntu-latest
-    # 25 min de scan + ate 15 min de espera alinhada
-    timeout-minutes: 45
+    timeout-minutes: 45   # margem: um envio bloqueado por 429 nao pode
+                          # ser morto a meio, ou perdem-se alertas
 
     steps:
       - name: Checkout
@@ -39,11 +41,6 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-
-      # Alinha o arranque ao minuto :02. A vela de 1h fecha aos :00; dois
-      # minutos dao a OKX tempo de a marcar como fechada (confirm=1).
-      - name: Alinhar ao fecho da vela
-        run: python wait_until.py --minute 2 --max-wait 900 --grace 600
 
       - name: Run sweep scanner (1h)
         env:
@@ -71,6 +68,8 @@ jobs:
             exit 0
           fi
           git commit -m "chore: sweep 1h state [skip ci]"
+          # Varios workflows escrevem no repositorio; o retry com rebase e
+          # o que evita que um push perdido derrube a execucao.
           for attempt in 1 2 3 4 5; do
             git pull --rebase --autostash && git push && exit 0
             echo "push falhou (tentativa $attempt)"

@@ -49,7 +49,15 @@ class TelegramClient:
         # HTML permite negrito, o que e o que distingue visualmente um sinal
         # de 1W de um de 4h numa lista longa. Os valores interpolados sao
         # escapados na montagem da mensagem, nao aqui.
-        fields = {"chat_id": self.chat_id, "text": text, "parse_mode": "HTML"}
+        # disable_web_page_preview: sem isto, cada alerta arrasta uma
+        # pre-visualizacao enorme do TradingView que ocupa mais ecra que a
+        # propria mensagem e torna uma lista de alertas ilegivel.
+        fields = {
+            "chat_id": self.chat_id,
+            "text": text,
+            "parse_mode": "HTML",
+            "disable_web_page_preview": "true",
+        }
         if self.topic_id:
             fields["message_thread_id"] = self.topic_id
         body = urllib.parse.urlencode(fields).encode("utf-8")
@@ -225,3 +233,116 @@ class TelegramClient:
             f"\U0001F4CA https://www.tradingview.com/chart/?symbol={chart_symbol}"
         )
         return self.send(text)
+
+    # -----------------------------------------------------------------
+    # ENVIO AGRUPADO
+    # -----------------------------------------------------------------
+    #
+    # PORQUE EXISTE
+    #   Medido em producao: 73 alertas individuais demoraram ~53 minutos a
+    #   sair -- 41 segundos por mensagem, contra os 3.5s do throttle. A
+    #   diferenca sao esperas de 429: o Telegram limita a ~20 mensagens por
+    #   minuto para o mesmo grupo, e o job era morto pelo timeout antes de
+    #   acabar, perdendo os alertas que faltavam.
+    #
+    #   Agrupar 10 sinais por mensagem transforma 73 envios em 8. O problema
+    #   deixa de existir em vez de ser mitigado.
+    #
+    # O QUE NAO E AGRUPADO
+    #   Os timeframes altos (1D/3D/1W). Sao raros e o objetivo e que se
+    #   destaquem -- meter um sinal de 1W no meio de uma lista de dez
+    #   anularia o destaque que acabamos de acrescentar.
+
+    BATCH_SIZE = 10
+
+    def send_sweeps(self, sweeps: list) -> tuple[int, int]:
+        """Envia uma lista de varrimentos. Devolve (enviados, falhados)."""
+        if not sweeps:
+            return 0, 0
+
+        individuais = [s for s in sweeps if self._is_high_tf(s.timeframe)]
+        agrupaveis = [s for s in sweeps if not self._is_high_tf(s.timeframe)]
+
+        enviados = 0
+        falhados = 0
+
+        for sweep in individuais:
+            if self.send_sweep(sweep):
+                enviados += 1
+            else:
+                falhados += 1
+
+        for start in range(0, len(agrupaveis), self.BATCH_SIZE):
+            grupo = agrupaveis[start:start + self.BATCH_SIZE]
+            if self._send_sweep_digest(grupo):
+                enviados += len(grupo)
+            else:
+                falhados += len(grupo)
+
+        return enviados, falhados
+
+    def _send_sweep_digest(self, sweeps: list) -> bool:
+        timeframes = sorted({s.timeframe for s in sweeps})
+        header = (f"\U0001F30A <b>{len(sweeps)} varrimento"
+                  f"{'s' if len(sweeps) > 1 else ''}</b> \u2014 {', '.join(timeframes)}")
+
+        linhas = [header, ""]
+        for sweep in sweeps:
+            bullish = sweep.kind == "bullish_sweep"
+            icon = "\U0001F7E2" if bullish else "\U0001F534"
+            base = self._esc(self._base_asset(sweep.symbol))
+            quando = (sweep.sweep_time.strftime("%d/%m %H:%M")
+                      if sweep.timeframe in ("1h", "4h") else str(sweep.sweep_time.date()))
+            chart = urllib.parse.quote(f"OKX:{self._base_asset(sweep.symbol)}USDT.P")
+            linhas.append(
+                f'{icon} <a href="https://www.tradingview.com/chart/?symbol={chart}">'
+                f"<b>{base}</b></a> {sweep.timeframe}  "
+                f"{sweep.depth_atr:.2f} ATR · pavio {sweep.wick_fraction * 100:.0f}% · {quando}"
+            )
+        return self.send("\n".join(linhas))
+
+    def send_signals(self, signals: list) -> tuple[int, int]:
+        """Equivalente para divergencias de RSI."""
+        if not signals:
+            return 0, 0
+
+        individuais = [s for s in signals if self._is_high_tf(s.timeframe)]
+        agrupaveis = [s for s in signals if not self._is_high_tf(s.timeframe)]
+
+        enviados = 0
+        falhados = 0
+
+        for signal in individuais:
+            if self.send_signal(signal):
+                enviados += 1
+            else:
+                falhados += 1
+
+        for start in range(0, len(agrupaveis), self.BATCH_SIZE):
+            grupo = agrupaveis[start:start + self.BATCH_SIZE]
+            if self._send_signal_digest(grupo):
+                enviados += len(grupo)
+            else:
+                falhados += len(grupo)
+
+        return enviados, falhados
+
+    def _send_signal_digest(self, signals: list) -> bool:
+        timeframes = sorted({s.timeframe for s in signals})
+        header = (f"\U0001F4C9 <b>{len(signals)} diverg\u00eancia"
+                  f"{'s' if len(signals) > 1 else ''}</b> \u2014 {', '.join(timeframes)}")
+
+        linhas = [header, ""]
+        for signal in signals:
+            bullish = signal.kind == "bullish_regular"
+            icon = "\U0001F7E2" if bullish else "\U0001F534"
+            base = self._esc(self._base_asset(signal.ticker))
+            quando = (signal.confirmation_time.strftime("%d/%m %H:%M")
+                      if signal.timeframe == "4h" else str(signal.confirmation_time.date()))
+            chart = urllib.parse.quote(f"OKX:{self._base_asset(signal.ticker)}USDT.P")
+            linhas.append(
+                f'{icon} <a href="https://www.tradingview.com/chart/?symbol={chart}">'
+                f"<b>{base}</b></a> {signal.timeframe}  "
+                f"RSI {signal.first_rsi:.0f}\u2192{signal.second_rsi:.0f} · {quando}"
+            )
+        return self.send("\n".join(linhas))

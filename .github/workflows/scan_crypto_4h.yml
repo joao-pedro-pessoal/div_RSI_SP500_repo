@@ -17,7 +17,8 @@ concurrency:
 jobs:
   scan:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45   # margem: um envio bloqueado por 429 nao pode
+                          # ser morto a meio, ou perdem-se alertas
 
     steps:
       - name: Checkout
