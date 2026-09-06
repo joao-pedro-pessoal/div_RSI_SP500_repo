@@ -4,12 +4,12 @@
     "download_failures": 0,
     "downloaded_1h": 100,
     "downloaded_4h": 0,
-    "new_signals": 9,
+    "new_signals": 12,
     "scan_errors": 0,
     "send_failures": 0,
-    "sent": 9,
+    "sent": 12,
     "universe": 100
   },
-  "ran_at": "2026-09-06T14:09:42.901674+00:00",
+  "ran_at": "2026-09-06T17:37:59.138861+00:00",
   "status": "ok"
 }
