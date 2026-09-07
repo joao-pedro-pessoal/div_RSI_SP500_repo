@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-09-04T20:55:57.014550+00:00",
+  "updated_at": "2026-09-07T20:56:09.088840+00:00",
   "sent_signal_ids": [
     "AAPL|1D|bullish_regular|tradingview_rsi_pivot|2026-08-03T00:00:00|2026-08-12T00:00:00",
     "AAPL|1W|bearish_regular|tradingview_rsi_pivot|2026-05-29T00:00:00|2026-07-17T00:00:00",
@@ -165,6 +165,7 @@
     "IRM|1W|bearish_regular|tradingview_rsi_pivot|2026-05-08T00:00:00|2026-06-26T00:00:00",
     "IT|1D|bearish_regular|tradingview_rsi_pivot|2026-08-10T00:00:00|2026-08-24T00:00:00",
     "IT|1W|bullish_regular|tradingview_rsi_pivot|2026-04-10T00:00:00|2026-06-19T00:00:00",
+    "IVZ|1D|bearish_regular|tradingview_rsi_pivot|2026-08-17T00:00:00|2026-08-27T00:00:00",
     "JBHT|1D|bullish_regular|tradingview_rsi_pivot|2026-08-03T00:00:00|2026-08-11T00:00:00",
     "JBL|3D|bearish_regular|tradingview_rsi_pivot|2026-05-13T00:00:00|2026-08-13T00:00:00",
     "JKHY|1D|bearish_regular|tradingview_rsi_pivot|2026-07-13T00:00:00|2026-07-29T00:00:00",
@@ -301,6 +302,7 @@
     "VLTO|1D|bearish_regular|tradingview_rsi_pivot|2026-08-07T00:00:00|2026-08-19T00:00:00",
     "VRTX|1D|bearish_regular|tradingview_rsi_pivot|2026-08-11T00:00:00|2026-08-19T00:00:00",
     "VST|1D|bullish_regular|tradingview_rsi_pivot|2026-07-29T00:00:00|2026-08-24T00:00:00",
+    "VTRS|1W|bearish_regular|tradingview_rsi_pivot|2026-05-08T00:00:00|2026-07-31T00:00:00",
     "VTRS|3D|bearish_regular|tradingview_rsi_pivot|2026-05-13T00:00:00|2026-07-28T00:00:00",
     "V|1D|bearish_regular|tradingview_rsi_pivot|2026-07-16T00:00:00|2026-07-29T00:00:00",
     "WAT|1D|bearish_regular|tradingview_rsi_pivot|2026-08-12T00:00:00|2026-08-27T00:00:00",
