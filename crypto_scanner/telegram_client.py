@@ -116,6 +116,35 @@ class TelegramClient:
     def _is_high_tf(cls, timeframe: str) -> bool:
         return timeframe in cls.HIGH_TIMEFRAMES
 
+    # Duracao de cada timeframe, para calcular ha quanto tempo a vela fechou.
+    TF_MINUTES = {"1h": 60, "4h": 240, "1D": 1440, "3D": 4320, "1W": 10080}
+
+    @classmethod
+    def _candle_age(cls, open_time, timeframe: str) -> str:
+        """
+        Ha quanto tempo esta vela FECHOU.
+
+        Vai na mensagem para a frescura ser visivel sem ter de fazer contas:
+        um sinal de "ha 4 min" e outro de "ha 3h" merecem atencao diferente,
+        e antes nao havia forma de os distinguir de relance.
+        """
+        minutes = cls.TF_MINUTES.get(timeframe)
+        if minutes is None:
+            return ""
+        import datetime as _dt
+        close_time = open_time + _dt.timedelta(minutes=minutes)
+        now = _dt.datetime.now(_dt.timezone.utc)
+        if close_time.tzinfo is None:
+            close_time = close_time.replace(tzinfo=_dt.timezone.utc)
+        age = (now - close_time).total_seconds() / 60.0
+        if age < 0:
+            return "a fechar"
+        if age < 90:
+            return f"há {age:.0f} min"
+        if age < 48 * 60:
+            return f"há {age / 60:.1f}h"
+        return f"há {age / 1440:.1f}d"
+
     @staticmethod
     def _esc(value) -> str:
         """Escapa para HTML. Precos e simbolos sao seguros, mas escapar
@@ -193,7 +222,8 @@ class TelegramClient:
             f"RSI anterior: {signal.first_rsi:.2f}\n"
             f"Novo RSI: {signal.second_rsi:.2f} {rsi_arrow}\n\n"
             f"Dist\u00e2ncia: {signal.distance_bars} candles\n"
-            f"Confirmado: {stamp(signal.confirmation_time)}\n"
+            f"Confirmado: {stamp(signal.confirmation_time)} "
+            f"({self._candle_age(signal.confirmation_time, signal.timeframe)})\n"
             f"\U0001F4CA https://www.tradingview.com/chart/?symbol={chart_symbol}"
         )
         return self.send(text)
@@ -229,7 +259,7 @@ class TelegramClient:
             f"Fecho: {sweep.close_position * 100:.0f}% (topo da vela)\n\n"
             f"Tend\u00eancia: {sweep.n_pivots} pivots, {sweep.trend_atr:.2f} ATR\n"
             f"{origem}\n\n"
-            f"Vela: {stamp(sweep.sweep_time)}\n"
+            f"Vela: {stamp(sweep.sweep_time)} ({self._candle_age(sweep.sweep_time, sweep.timeframe)})\n"
             f"\U0001F4CA https://www.tradingview.com/chart/?symbol={chart_symbol}"
         )
         return self.send(text)
@@ -283,8 +313,10 @@ class TelegramClient:
 
     def _send_sweep_digest(self, sweeps: list) -> bool:
         timeframes = sorted({s.timeframe for s in sweeps})
+        idade = self._candle_age(sweeps[0].sweep_time, sweeps[0].timeframe)
         header = (f"\U0001F30A <b>{len(sweeps)} varrimento"
-                  f"{'s' if len(sweeps) > 1 else ''}</b> \u2014 {', '.join(timeframes)}")
+                  f"{'s' if len(sweeps) > 1 else ''}</b> \u2014 {', '.join(timeframes)}"
+                  f"{' · ' + idade if idade else ''}")
 
         linhas = [header, ""]
         for sweep in sweeps:
@@ -329,8 +361,10 @@ class TelegramClient:
 
     def _send_signal_digest(self, signals: list) -> bool:
         timeframes = sorted({s.timeframe for s in signals})
+        idade = self._candle_age(signals[0].confirmation_time, signals[0].timeframe)
         header = (f"\U0001F4C9 <b>{len(signals)} diverg\u00eancia"
-                  f"{'s' if len(signals) > 1 else ''}</b> \u2014 {', '.join(timeframes)}")
+                  f"{'s' if len(signals) > 1 else ''}</b> \u2014 {', '.join(timeframes)}"
+                  f"{' · ' + idade if idade else ''}")
 
         linhas = [header, ""]
         for signal in signals:

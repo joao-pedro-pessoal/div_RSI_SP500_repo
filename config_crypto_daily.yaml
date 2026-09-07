@@ -31,13 +31,20 @@ scanner:
 
   # Janela de alerta EM BARRAS DE CADA TIMEFRAME.
   #
-  # Com um workflow por grupo de timeframes, a janela so precisa de margem
-  # para execucoes falhadas -- nao de cobrir 24h como quando tudo corria
-  # uma vez por dia. A deduplicacao por signal_id trata da sobreposicao.
+  # 1 = SO a vela que acabou de fechar. Nada mais antigo e enviado.
+  #
+  # Estava em 3 para tolerar uma execucao falhada, mas era isso que
+  # permitia sinais de horas atras chegarem como se fossem novos. Um sinal
+  # velho nao vale nada; um sinal perdido custa menos que um enganador.
+  #
+  # CUSTO ASSUMIDO: se uma execucao nao correr, o sinal dessa vela perde-se
+  # de vez. Nao ha recuperacao.
   alert_age_bars:
-    1D: 2
-    3D: 2
-    1W: 2
+    1D: 1
+    3D: 1
+    1W: 1
+
+
 
 universe:
   limit: 100

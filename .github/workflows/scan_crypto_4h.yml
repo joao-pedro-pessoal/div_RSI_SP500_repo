@@ -3,9 +3,13 @@ name: Crypto Divergence 4h
 on:
   workflow_dispatch:
   schedule:
-    # De 4 em 4 horas, 15 min apos o fecho da vela UTC.
-    # Corta o atraso total de 44h para 24h (o resto e estrutural).
-    - cron: "15 0,4,8,12,16,20 * * *"
+    # 10 minutos ANTES do fecho da vela, de proposito.
+    #
+    # Os agendamentos do GitHub nao sao pontuais: um cron para os :05 pode
+    # disparar aos :17. Arrancando cedo o job entra na fila antes, e o passo
+    # de alinhamento espera pelo minuto certo -- com guardas para nunca
+    # esperar mais do que valeria a pena.
+    - cron: "50 3,7,11,15,19,23 * * *"
 
 permissions:
   contents: write
@@ -17,8 +21,10 @@ concurrency:
 jobs:
   scan:
     runs-on: ubuntu-latest
-    timeout-minutes: 45   # margem: um envio bloqueado por 429 nao pode
-                          # ser morto a meio, ou perdem-se alertas
+    # 45 min: um envio bloqueado por 429 nao pode ser morto a meio, ou
+    # perdem-se alertas. Com o envio agrupado isto sobra, mas a margem
+    # custa zero num repositorio publico.
+    timeout-minutes: 45
 
     steps:
       - name: Checkout
@@ -33,6 +39,14 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+
+      # Alinha ao minuto :02. A vela fecha aos :00; dois minutos dao a OKX
+      # tempo de a marcar como fechada (confirm=1).
+      #
+      # E este passo que torna a janela de 1 barra utilizavel: sem ele, uma
+      # execucao as :50 reportaria a vela que fechou ha 50 minutos.
+      - name: Alinhar ao fecho da vela
+        run: python wait_until.py --minute 2 --max-wait 900 --grace 600
 
       - name: Run divergence scanner (4h)
         env:
@@ -59,7 +73,7 @@ jobs:
             echo "nada para guardar"
             exit 0
           fi
-          git commit -m "chore: crypto divergence 4h state [skip ci]"
+          git commit -m "chore: crypto div 4h state [skip ci]"
           for attempt in 1 2 3 4 5; do
             git pull --rebase --autostash && git push && exit 0
             echo "push falhou (tentativa $attempt)"

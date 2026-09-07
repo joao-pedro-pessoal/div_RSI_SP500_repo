@@ -65,11 +65,18 @@ scanner:
 
   # Janela de alerta EM BARRAS DE CADA TIMEFRAME.
   #
-  # Agora que cada timeframe tem o seu proprio workflow com a frequencia
-  # certa, a janela so precisa de margem para uma execucao falhada -- nao
-  # de cobrir 24h como antes. Menos janela = menos hipotese de repetidos.
+  # 1 = SO a vela que acabou de fechar. Nada mais antigo e enviado.
+  #
+  # Estava em 3 para tolerar uma execucao falhada, mas era isso que
+  # permitia sinais de horas atras chegarem como se fossem novos. Um sinal
+  # velho nao vale nada; um sinal perdido custa menos que um enganador.
+  #
+  # CUSTO ASSUMIDO: se uma execucao nao correr, o sinal dessa vela perde-se
+  # de vez. Nao ha recuperacao.
   alert_age_bars:
-    1h: 3
+    1h: 1
+
+
 
 universe:
   limit: 100
@@ -84,9 +91,8 @@ data:
   sleep_between: 0.12
 
 telegram:
-  # Ligado por pedido explicito. Corre 24x/dia, logo sao 24 mensagens
-  # de inicio + 24 de conclusao. Poe false se afogar os alertas.
-  send_start_notice: true
+  # corre 24x/dia -- 48 mensagens diarias so de estado
+  send_start_notice: false
   send_heartbeat: true
 
 state_file: state/sweep_1h_signals.json

@@ -1,47 +1,46 @@
-# Estado completo — substitui TODOS os zips anteriores de cripto
+# Sinais frescos — substitui envio_agrupado.zip e alinhamento_horario.zip
 
-Este zip tem o estado final de tudo. A ordem de aplicacao deixa de
-importar: nao ha risco de um zip antigo sobrepor alteracoes novas.
+## O problema
+
+Sinais de 5 horas atras a chegar como se fossem novos.
+
+Tres causas, todas corrigidas aqui:
+
+1. JANELA DE 3 BARRAS. Existia para tolerar uma execucao falhada, mas era
+   ela que deixava passar sinais velhos. Agora e 1: so a vela que acabou
+   de fechar.
+
+2. SEM ALINHAMENTO. Uma execucao as :50 reportava a vela que fechou ha 50
+   minutos. Agora arranca as :50 e espera pelo :02.
+
+3. 73 MENSAGENS INDIVIDUAIS. Medido: 41 segundos por mensagem (contra 3.5s
+   de throttle) por causa dos 429 do Telegram, e o job era morto pelo
+   timeout de 25 min antes de acabar. Agora sao 10 sinais por mensagem.
 
 ## Aplicar
 
     cd C:\Users\joao2\Downloads\scanner_pronto_para_github\pronto
-    tar -xf estado_completo_cripto.zip
-
-## Verificar ANTES de commitar
-
-    python -c "import sys; sys.path.insert(0,'.'); from crypto_scanner.sweep import SweepParams; print(SweepParams().min_wick_fraction)"
-
-Tem de imprimir 0.45. Se imprimir outro valor, o tar nao sobrepos.
-
-    python -m unittest discover -s tests -q      -> 89 testes, OK
-    git status                                    -> "On branch main"
-
-## Enviar
-
+    tar -xf sinais_frescos.zip
+    python -m unittest discover -s tests -q
     git add -A
-    git commit -m "estado final dos scanners de cripto"
+    git commit -m "sinais frescos: janela 1, alinhamento e envio agrupado"
     git pull --rebase
     git push
 
-## APAGAR se ainda existirem (substituidos)
+## Custo assumido
 
-    del config_sweep.yaml
-    del config_crypto.yaml
-    del .github\workflows\scan_sweep.yml
-    del .github\workflows\scan_crypto.yml
-    del state\sweep_signals.json state\sweep_heartbeat.json
-    del state\crypto_signals.json state\crypto_heartbeat.json
+Com janela 1, uma execucao que nao corra perde o sinal dessa vela PARA
+SEMPRE. Nao ha recuperacao. Foi decisao explicita: um sinal velho nao vale
+nada, e um sinal perdido custa menos que um enganador.
 
-## Se apanhares conflito no git pull --rebase
+Isto torna o agendamento critico. Se os workflows continuarem a nao correr
+sozinhos, vais receber menos sinais do que antes -- mas os que receberes
+sao todos frescos.
 
-Resolve, faz "git add", e depois **git rebase --continue** -- NAO git commit.
-Um commit a meio de um rebase deixa-te em detached HEAD.
+## Como verificar
 
-## Secrets necessarios
+Cada mensagem passa a dizer a idade da vela:
 
-    TELEGRAM_BOT_TOKEN
-    TELEGRAM_CHAT_ID
-    TELEGRAM_TOPIC_ID          (S&P 500, topico 2)
-    TELEGRAM_TOPIC_ID_CRYPTO   (divergencias, topico 778)
-    TELEGRAM_TOPIC_ID_SWEEP    (varrimentos, topico novo)
+    🌊 3 varrimentos — 1h · há 4 min
+
+Se vires "há 3.0h" numa vela de 1h, alguma execucao falhou.
