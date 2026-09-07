@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-09-07T04:41:31.037961+00:00",
+  "updated_at": "2026-09-07T16:42:31.243191+00:00",
   "sent_signal_ids": [
     "AAVE-USDT-SWAP|4h|bearish_regular|tradingview_rsi_pivot|2026-09-03T12:00:00+00:00|2026-09-06T00:00:00+00:00",
     "APT-USDT-SWAP|4h|bearish_regular|tradingview_rsi_pivot|2026-09-03T04:00:00+00:00|2026-09-06T04:00:00+00:00",
@@ -11,6 +11,7 @@
     "BCH-USDT-SWAP|4h|bullish_regular|tradingview_rsi_pivot|2026-08-29T08:00:00+00:00|2026-09-02T12:00:00+00:00",
     "BONK-USDT-SWAP|4h|bearish_regular|tradingview_rsi_pivot|2026-09-01T04:00:00+00:00|2026-09-05T04:00:00+00:00",
     "BTC-USDT-SWAP|4h|bullish_regular|tradingview_rsi_pivot|2026-08-29T00:00:00+00:00|2026-08-30T20:00:00+00:00",
+    "COMP-USDT-SWAP|4h|bearish_regular|tradingview_rsi_pivot|2026-09-03T04:00:00+00:00|2026-09-06T12:00:00+00:00",
     "CRO-USDT-SWAP|4h|bearish_regular|tradingview_rsi_pivot|2026-08-27T16:00:00+00:00|2026-08-30T12:00:00+00:00",
     "CRO-USDT-SWAP|4h|bullish_regular|tradingview_rsi_pivot|2026-08-28T16:00:00+00:00|2026-08-31T08:00:00+00:00",
     "CRV-USDT-SWAP|4h|bearish_regular|tradingview_rsi_pivot|2026-09-01T00:00:00+00:00|2026-09-03T16:00:00+00:00",
