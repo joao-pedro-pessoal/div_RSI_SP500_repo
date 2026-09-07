@@ -1,46 +1,47 @@
-# Sinais frescos — substitui envio_agrupado.zip e alinhamento_horario.zip
+# Execucoes redundantes — substitui sinais_frescos.zip
 
-## O problema
+Inclui tudo o que estava no sinais_frescos (janela 1, alinhamento, envio
+agrupado) MAIS a redundancia. Aplica so este.
 
-Sinais de 5 horas atras a chegar como se fossem novos.
+## O problema medido
 
-Tres causas, todas corrigidas aqui:
+O Sweep Scanner 1h ia na execucao #202 quando deviam ser ~360 em duas
+semanas. O GitHub descarta cerca de 44% das execucoes agendadas em
+periodos de carga -- comportamento documentado, sem garantia nenhuma.
 
-1. JANELA DE 3 BARRAS. Existia para tolerar uma execucao falhada, mas era
-   ela que deixava passar sinais velhos. Agora e 1: so a vela que acabou
-   de fechar.
+Com alert_age_bars = 1, cada hora saltada perde esse sinal para sempre.
 
-2. SEM ALINHAMENTO. Uma execucao as :50 reportava a vela que fechou ha 50
-   minutos. Agora arranca as :50 e espera pelo :02.
+## A solucao
 
-3. 73 MENSAGENS INDIVIDUAIS. Medido: 41 segundos por mensagem (contra 3.5s
-   de throttle) por causa dos 429 do Telegram, e o job era morto pelo
-   timeout de 25 min antes de acabar. Agora sao 10 sinais por mensagem.
+TRES gatilhos por periodo em vez de um:
+
+    56% -> 91% de probabilidade de pelo menos um correr
+
+O --skip-if-recent evita trabalho duplicado: se a primeira tentativa ja
+correu com sucesso, as seguintes saem de imediato sem descarregar nada.
+
+Uma execucao FALHADA nao conta como sucesso -- a tentativa seguinte
+volta a correr.
 
 ## Aplicar
 
     cd C:\Users\joao2\Downloads\scanner_pronto_para_github\pronto
-    tar -xf sinais_frescos.zip
+    tar -xf execucoes_redundantes.zip
     python -m unittest discover -s tests -q
     git add -A
-    git commit -m "sinais frescos: janela 1, alinhamento e envio agrupado"
+    git commit -m "tres gatilhos por periodo com guarda anti-duplicacao"
     git pull --rebase
     git push
 
-## Custo assumido
+## Se ainda assim falhar
 
-Com janela 1, uma execucao que nao corra perde o sinal dessa vela PARA
-SEMPRE. Nao ha recuperacao. Foi decisao explicita: um sinal velho nao vale
-nada, e um sinal perdido custa menos que um enganador.
+91% ainda deixa ~2 horas por dia sem scan. Se isso incomodar, a unica
+solucao real e sair do GitHub Actions:
 
-Isto torna o agendamento critico. Se os workflows continuarem a nao correr
-sozinhos, vais receber menos sinais do que antes -- mas os que receberes
-sao todos frescos.
+  Oracle Cloud Always Free — VM ARM gratuita para sempre, cron do sistema
+  nao falha. Ressalvas: a capacidade nao e garantida por regiao, os limites
+  foram reduzidos em junho de 2026 para 2 nucleos e 12 GB, e instancias
+  inativas podem ser reclamadas. Para um script de 3 minutos chega de sobra.
 
-## Como verificar
-
-Cada mensagem passa a dizer a idade da vela:
-
-    🌊 3 varrimentos — 1h · há 4 min
-
-Se vires "há 3.0h" numa vela de 1h, alguma execucao falhou.
+  Raspberry Pi em casa — ~70 euros uma vez, sem mensalidade, e com IP
+  europeu a Bybit voltaria a funcionar.

@@ -3,13 +3,18 @@ name: Sweep Scanner 4h
 on:
   workflow_dispatch:
   schedule:
-    # 10 minutos ANTES do fecho da vela, de proposito.
+    # TRES gatilhos, nao um.
     #
-    # Os agendamentos do GitHub nao sao pontuais: um cron para os :05 pode
-    # disparar aos :17. Arrancando cedo o job entra na fila antes, e o passo
-    # de alinhamento espera pelo minuto certo -- com guardas para nunca
-    # esperar mais do que valeria a pena.
-    - cron: "50 3,7,11,15,19,23 * * *"
+    # Medido no proprio repositorio: o Sweep Scanner 1h ia na execucao #202
+    # quando deviam ser ~360 -- o GitHub descarta cerca de 44% das execucoes
+    # agendadas em periodos de carga. Com tres tentativas a probabilidade de
+    # pelo menos uma correr sobe de 56% para ~91%.
+    #
+    # As tentativas extra nao duplicam trabalho: o --skip-if-recent faz a
+    # segunda sair de imediato se a primeira ja correu.
+    - cron: "46 3,7,11,15,19,23 * * *"
+    - cron: "52 3,7,11,15,19,23 * * *"
+    - cron: "58 3,7,11,15,19,23 * * *"
 
 permissions:
   contents: write
@@ -53,7 +58,7 @@ jobs:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           TELEGRAM_TOPIC_ID: ${{ secrets.TELEGRAM_TOPIC_ID_SWEEP }}
-        run: python main_sweep.py --config config_sweep_4h.yaml
+        run: python main_sweep.py --config config_sweep_4h.yaml --skip-if-recent 120
 
       - name: Notify workflow failure
         if: failure()

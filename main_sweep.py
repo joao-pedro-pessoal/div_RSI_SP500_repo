@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import argparse
 import json
+from datetime import datetime, timezone
 import sys
 from pathlib import Path
 
@@ -41,7 +42,49 @@ def parse_args() -> argparse.Namespace:
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--symbols", nargs="*")
     ap.add_argument("--timeframe", action="append", dest="timeframes")
+    ap.add_argument("--skip-if-recent", type=int, default=0,
+                    help="sai se ja houve execucao bem sucedida ha menos de N minutos")
     return ap.parse_args()
+
+
+
+def already_ran_recently(heartbeat_path: Path, minutes: int) -> bool:
+    """
+    Ja houve uma execucao bem sucedida ha menos de `minutes` minutos?
+
+    PORQUE EXISTE
+      Os workflows tem varios gatilhos por periodo, porque o GitHub descarta
+      cerca de 44% das execucoes agendadas. Tres tentativas sobem a taxa de
+      56% para ~91%.
+
+      Mas quando duas tentativas passam, a segunda repetiria o trabalho todo
+      -- download de 100 moedas incluido -- para nao produzir alerta nenhum
+      (a deduplicacao trata disso). Esta guarda faz a segunda sair de
+      imediato.
+    """
+    if minutes <= 0 or not heartbeat_path.exists():
+        return False
+    try:
+        payload = json.loads(heartbeat_path.read_text())
+    except Exception:
+        return False
+    if payload.get("status") != "ok":
+        return False
+    stamp = payload.get("ran_at")
+    if not stamp:
+        return False
+    try:
+        ran_at = datetime.fromisoformat(stamp)
+    except ValueError:
+        return False
+    if ran_at.tzinfo is None:
+        ran_at = ran_at.replace(tzinfo=timezone.utc)
+    age = (datetime.now(timezone.utc) - ran_at).total_seconds() / 60.0
+    if age < minutes:
+        print(f"[skip] ja correu com sucesso ha {age:.0f} min "
+              f"(limite {minutes}); nada a fazer")
+        return True
+    return False
 
 
 def main() -> int:
@@ -64,6 +107,9 @@ def main() -> int:
     telegram = TelegramClient(dry_run=args.dry_run)
 
     telegram_cfg = cfg.get("telegram", {})
+
+    if already_ran_recently(Path(heartbeat_file), args.skip_if_recent):
+        return 0
 
     try:
         if args.symbols:
