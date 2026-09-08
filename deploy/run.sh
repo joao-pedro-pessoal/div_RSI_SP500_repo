@@ -39,7 +39,8 @@ fi
 case "$KIND" in
     sweep)  export TELEGRAM_TOPIC_ID="${TELEGRAM_TOPIC_ID_SWEEP:-}"  ; MAIN="main_sweep.py"  ;;
     crypto) export TELEGRAM_TOPIC_ID="${TELEGRAM_TOPIC_ID_CRYPTO:-}" ; MAIN="main_crypto.py" ;;
-    *) echo "tipo desconhecido: $KIND (usa sweep ou crypto)" >&2; exit 2 ;;
+    sp500)  export TELEGRAM_TOPIC_ID="${TELEGRAM_TOPIC_ID_SP500:-}"  ; MAIN="main.py"        ;;
+    *) echo "tipo desconhecido: $KIND (usa sweep, crypto ou sp500)" >&2; exit 2 ;;
 esac
 
 STAMP="$(date -u +%Y%m%d)"

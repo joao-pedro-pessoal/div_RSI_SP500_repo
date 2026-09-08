@@ -86,6 +86,7 @@ mas custa 1 GB dos 30 de disco e evita surpresas se o universo crescer.
     TELEGRAM_CHAT_ID=-1003951050134
     TELEGRAM_TOPIC_ID_CRYPTO=778
     TELEGRAM_TOPIC_ID_SWEEP=<o teu topico de varrimentos>
+    TELEGRAM_TOPIC_ID_SP500=2
 
 Ctrl+O, Enter, Ctrl+X.
 
@@ -101,6 +102,17 @@ do bot a quem o tiver.
     cat logs/sweep_config_sweep_1h_*.log
 
 Confirma que a OKX responde (`[provider] 1h: N/100`) e que nao ha erros.
+
+Testa TAMBEM o do S&P 500. Ele usa yfinance, nao a OKX, e o Yahoo bloqueia
+alguns IPs de datacenter -- e a unica parte que pode nao funcionar a partir
+da Google:
+
+    bash deploy/run.sh sp500 config.yaml --dry-run
+    cat logs/sp500_config_*.log
+
+Procura a linha com o numero de accoes descarregadas. Deve rondar 503/503.
+Se falharem muitas, o Yahoo esta a bloquear o IP da VM e esse scanner
+tem de ficar no GitHub Actions.
 
 Depois um teste que envia mesmo:
 
@@ -135,6 +147,12 @@ Actions → cada workflow → menu `...` → **Disable workflow**.
 
 Deixa o "Diagnostico de rede" ativo: e manual e nao custa nada.
 
+**Se o teste do S&P 500 tiver falhado**, deixa tambem o "S&P 500 Trading
+Scanners" ligado e remove a linha correspondente do crontab:
+
+    crontab -e
+    # apagar a linha que acaba em "run.sh sp500 config.yaml"
+
 Podes reativa-los num clique se a VM tiver problemas.
 
 ---
@@ -156,6 +174,10 @@ e2-micro fica ligada. Nao ha reclamacao por inatividade como na Oracle.
     systemctl status cron
     grep CRON /var/log/syslog | tail -20
     ls -lt ~/scanners/logs/ | head
+
+**Os tres bots no crontab:** varrimentos, divergencias de cripto e S&P 500.
+Confirma com `crontab -l` que estao todos la -- sao seis linhas de scan
+mais uma de atualizacao.
 
 **O heartbeat continua a ser o alarme.** Se deixares de receber a mensagem
 de conclusao, algo parou -- agora na VM em vez de no GitHub.

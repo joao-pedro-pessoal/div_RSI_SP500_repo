@@ -40,9 +40,17 @@ CRON_TZ=UTC
 2 0,4,8,12,16,20 * * * $RUN sweep  config_sweep_4h.yaml
 5 0 * * *              $RUN sweep  config_sweep_daily.yaml
 
-# Divergencias de RSI
+# Divergencias de RSI (cripto)
 3 0,4,8,12,16,20 * * * $RUN crypto config_crypto_4h.yaml
 6 0 * * *              $RUN crypto config_crypto_daily.yaml
+
+# S&P 500 — segunda a sexta.
+#
+# 21:45 UTC e nao 20:45: no verao americano sao 17:45 ET, no inverno 16:45
+# ET. O mercado fecha as 16:00 ET nos dois casos, portanto uma hora fixa em
+# UTC funciona o ano todo sem depender de suporte a CRON_TZ, que varia
+# entre implementacoes de cron.
+45 21 * * 1-5          $RUN sp500 config.yaml
 
 # Atualizar o codigo todos os dias as 4h UTC, para as correcoes que fizeres
 # no GitHub chegarem a VM sem teres de entrar nela.
