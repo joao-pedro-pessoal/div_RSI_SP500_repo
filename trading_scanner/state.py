@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 
@@ -26,7 +26,7 @@ class SignalState:
     def save(self) -> None:
         self.path.parent.mkdir(parents=True, exist_ok=True)
         payload = {
-            "updated_at": datetime.now(UTC).isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat(),
             "sent_signal_ids": sorted(self.sent),
         }
         self.path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
@@ -36,7 +36,7 @@ def write_heartbeat(path: str | Path, *, status: str, details: dict | None = Non
     target = Path(path)
     target.parent.mkdir(parents=True, exist_ok=True)
     payload = {
-        "ran_at": datetime.now(UTC).isoformat(),
+        "ran_at": datetime.now(timezone.utc).isoformat(),
         "status": status,
         "details": details or {},
     }
