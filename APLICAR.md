@@ -1,47 +1,51 @@
-# Execucoes redundantes — substitui sinais_frescos.zip
+# Correcao do 429 da CoinGecko
 
-Inclui tudo o que estava no sinais_frescos (janela 1, alinhamento, envio
-agrupado) MAIS a redundancia. Aplica so este.
+## O que estava mal
 
-## O problema medido
+Duas coisas.
 
-O Sweep Scanner 1h ia na execucao #202 quando deviam ser ~360 em duas
-semanas. O GitHub descarta cerca de 44% das execucoes agendadas em
-periodos de carga -- comportamento documentado, sem garantia nenhuma.
+1. O RETRY NUNCA FUNCIONOU. O _get_json convertia o HTTPError num
+   RuntimeError para incluir o host na mensagem, mas o _get_json_retry
+   apanhava HTTPError -- que ja nao chegava la. Um 429 subia direto e
+   derrubava o scan inteiro. Bug meu, presente desde o inicio.
 
-Com alert_age_bars = 1, cada hora saltada perde esse sinal para sempre.
+2. HORARIOS SOBREPOSTOS. O scanner de 1h e o de 4h arrancavam ambos aos
+   :02 e pediam o ranking a CoinGecko ao mesmo tempo. O escalao gratuito
+   nao aguenta.
 
-## A solucao
+## O que muda
 
-TRES gatilhos por periodo em vez de um:
+- O retry funciona: 15s, 30s, 60s, 120s de espera entre tentativas
+- Cache do ranking em universe/last_ranking.json, valida 72h.
+  Se a CoinGecko falhar de todo, usa-se o ranking de ontem em vez de nao
+  correr. O top 100 por market cap muda devagar.
+- Horarios espacados: 1h aos :02, 4h aos :08, diarios aos :14 e :26
+- Todas as linhas do cron passam a chamar `bash` explicitamente, para
+  nao dependerem da permissao de execucao (que se perde a cada git pull
+  vindo do Windows)
 
-    56% -> 91% de probabilidade de pelo menos um correr
-
-O --skip-if-recent evita trabalho duplicado: se a primeira tentativa ja
-correu com sucesso, as seguintes saem de imediato sem descarregar nada.
-
-Uma execucao FALHADA nao conta como sucesso -- a tentativa seguinte
-volta a correr.
-
-## Aplicar
+## Aplicar no PC
 
     cd C:\Users\joao2\Downloads\scanner_pronto_para_github\pronto
-    tar -xf execucoes_redundantes.zip
-    python -m unittest discover -s tests -q
+    tar -xf fix_coingecko_429.zip
+    git status                (confirma "On branch main")
     git add -A
-    git commit -m "tres gatilhos por periodo com guarda anti-duplicacao"
+    git commit -m "corrige retry do 429 e espaca horarios"
     git pull --rebase
     git push
 
-## Se ainda assim falhar
+## Aplicar na VM
 
-91% ainda deixa ~2 horas por dia sem scan. Se isso incomodar, a unica
-solucao real e sair do GitHub Actions:
+    cd ~/scanners
+    git checkout . && git pull
+    chmod +x deploy/*.sh
+    bash deploy/install_cron.sh
+    crontab -l
 
-  Oracle Cloud Always Free — VM ARM gratuita para sempre, cron do sistema
-  nao falha. Ressalvas: a capacidade nao e garantida por regiao, os limites
-  foram reduzidos em junho de 2026 para 2 nucleos e 12 GB, e instancias
-  inativas podem ser reclamadas. Para um script de 3 minutos chega de sobra.
+## Verificar
 
-  Raspberry Pi em casa — ~70 euros uma vez, sem mensalidade, e com IP
-  europeu a Bybit voltaria a funcionar.
+    bash deploy/run.sh crypto config_crypto_4h.yaml --dry-run
+    tail -n 20 logs/crypto_config_crypto_4h_$(date -u +%Y%m%d).log
+
+Se aparecer "a usar ranking em cache", a CoinGecko esta a limitar mas o
+scan corre na mesma -- que e o objetivo.

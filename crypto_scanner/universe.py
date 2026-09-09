@@ -79,9 +79,15 @@ def _get_json(url: str, params: dict | None = None, timeout: int = 30) -> dict |
             return json.loads(response.read().decode("utf-8"))
     except urllib.error.HTTPError as exc:
         # Sem o host na mensagem, um 403 nao diz QUAL das origens bloqueou --
-        # e essa e a unica informacao que interessa quando isto falha em CI.
+        # e essa e a unica informacao que interessa quando isto falha.
+        #
+        # O `code` E PRESERVADO de proposito: a versao anterior levantava um
+        # RuntimeError, e como o retry apanhava HTTPError, NUNCA chegava a
+        # repetir. Um 429 subia direto e derrubava o scan inteiro.
         host = urllib.parse.urlparse(url).netloc
-        raise RuntimeError(f"HTTP {exc.code} de {host}") from exc
+        raise urllib.error.HTTPError(
+            url, exc.code, f"{exc.reason} (host: {host})", exc.headers, None
+        ) from None
 
 
 def _get_json_retry(url: str, params: dict | None = None, attempts: int = 4) -> dict | list:
@@ -91,13 +97,17 @@ def _get_json_retry(url: str, params: dict | None = None, attempts: int = 4) -> 
     Backoff is exponential because retrying immediately after a 429 tends to
     extend the block rather than resolve it.
     """
-    delay = 5.0
+    delay = 15.0
     for attempt in range(attempts):
         try:
             return _get_json(url, params)
         except urllib.error.HTTPError as exc:
             if exc.code in (429, 502, 503, 504) and attempt < attempts - 1:
-                print(f"[universe] HTTP {exc.code}; waiting {delay:.0f}s")
+                # O 429 da CoinGecko dura tipicamente 60s. Comecar em 15s e
+                # duplicar da 15+30+60+120 = mais de 3 minutos de tolerancia,
+                # o que cobre a janela sem prolongar o bloqueio.
+                print(f"[universe] HTTP {exc.code}; a esperar {delay:.0f}s "
+                      f"(tentativa {attempt + 1}/{attempts})", flush=True)
                 time.sleep(delay)
                 delay *= 2
                 continue
@@ -119,6 +129,51 @@ def fetch_stablecoin_ids() -> set[str]:
         return set()
 
 
+CACHE_PATH = Path(__file__).resolve().parent.parent / "universe" / "last_ranking.json"
+CACHE_MAX_AGE_HOURS = 72
+
+
+def _save_ranking_cache(rows: list[dict]) -> None:
+    try:
+        CACHE_PATH.parent.mkdir(parents=True, exist_ok=True)
+        CACHE_PATH.write_text(json.dumps({
+            "saved_at": datetime.now(timezone.utc).isoformat(),
+            "rows": rows,
+        }))
+    except Exception:
+        pass    # a cache e otimizacao, nunca deve partir o scan
+
+
+def _load_ranking_cache() -> list[dict] | None:
+    """
+    Ranking guardado da ultima vez que a CoinGecko respondeu.
+
+    PORQUE EXISTE
+      Cinco scanners a partilhar o mesmo IP esgotam o escalao gratuito da
+      CoinGecko. Um 429 no ranking derrubava o scan inteiro -- e o ranking
+      por market cap muda devagar: usar o de ontem e muito melhor que nao
+      correr de todo.
+    """
+    if not CACHE_PATH.exists():
+        return None
+    try:
+        payload = json.loads(CACHE_PATH.read_text())
+        saved_at = datetime.fromisoformat(payload["saved_at"])
+        if saved_at.tzinfo is None:
+            saved_at = saved_at.replace(tzinfo=timezone.utc)
+        age = (datetime.now(timezone.utc) - saved_at).total_seconds() / 3600
+        if age > CACHE_MAX_AGE_HOURS:
+            print(f"[universe] cache do ranking tem {age:.0f}h, demasiado velha")
+            return None
+        rows = payload.get("rows") or []
+        if len(rows) < 100:
+            return None
+        print(f"[universe] a usar ranking em cache de ha {age:.1f}h")
+        return rows
+    except Exception:
+        return None
+
+
 def fetch_ranking(pages: int = 2, per_page: int = 250) -> list[dict]:
     """
     Market-cap ranking, newest first.
@@ -128,16 +183,26 @@ def fetch_ranking(pages: int = 2, per_page: int = 250) -> list[dict]:
     would leave well under 100 tradeable names.
     """
     rows: list[dict] = []
-    for page in range(1, pages + 1):
-        batch = _get_json_retry(COINGECKO_MARKETS, {
-            "vs_currency": "usd", "order": "market_cap_desc",
-            "per_page": per_page, "page": page,
-        })
-        if not batch:
-            break
-        rows.extend(batch)
-        if page < pages:
-            time.sleep(3.0)   # free tier is roughly 5-15 calls/minute
+    try:
+        for page in range(1, pages + 1):
+            batch = _get_json_retry(COINGECKO_MARKETS, {
+                "vs_currency": "usd", "order": "market_cap_desc",
+                "per_page": per_page, "page": page,
+            })
+            if not batch:
+                break
+            rows.extend(batch)
+            if page < pages:
+                time.sleep(3.0)   # free tier is roughly 5-15 calls/minute
+    except Exception as exc:
+        cached = _load_ranking_cache()
+        if cached is None:
+            raise
+        print(f"[universe] CoinGecko falhou ({exc}); a usar a cache")
+        return cached
+
+    if len(rows) >= 100:
+        _save_ranking_cache(rows)
     return rows
 
 

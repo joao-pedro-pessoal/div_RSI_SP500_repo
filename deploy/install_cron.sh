@@ -35,14 +35,23 @@ $MARK_START
 # para a marcar como fechada (confirm=1). Um minuto e apertado.
 CRON_TZ=UTC
 
+# HORARIOS ESPACADOS.
+#
+# O escalao gratuito da CoinGecko permite poucas chamadas por minuto, e
+# TODOS os scanners pedem o ranking de market cap. Quando o de 1h e o de
+# 4h arrancavam ambos aos :02, o segundo apanhava 429 e falhava.
+#
+# Ha tambem cache do ranking (universe/last_ranking.json) como rede de
+# seguranca, mas espacar evita o problema em vez de o remediar.
+
 # Varrimentos
-2 * * * *              $RUN sweep  config_sweep_1h.yaml
-2 0,4,8,12,16,20 * * * $RUN sweep  config_sweep_4h.yaml
-5 0 * * *              $RUN sweep  config_sweep_daily.yaml
+2 * * * *              bash $RUN sweep  config_sweep_1h.yaml
+8 0,4,8,12,16,20 * * * bash $RUN sweep  config_sweep_4h.yaml
+14 0 * * *             bash $RUN sweep  config_sweep_daily.yaml
 
 # Divergencias de RSI (cripto)
-3 0,4,8,12,16,20 * * * $RUN crypto config_crypto_4h.yaml
-6 0 * * *              $RUN crypto config_crypto_daily.yaml
+20 0,4,8,12,16,20 * * * bash $RUN crypto config_crypto_4h.yaml
+26 0 * * *             bash $RUN crypto config_crypto_daily.yaml
 
 # S&P 500 — segunda a sexta.
 #
@@ -50,7 +59,7 @@ CRON_TZ=UTC
 # ET. O mercado fecha as 16:00 ET nos dois casos, portanto uma hora fixa em
 # UTC funciona o ano todo sem depender de suporte a CRON_TZ, que varia
 # entre implementacoes de cron.
-45 21 * * 1-5          $RUN sp500 config.yaml
+45 21 * * 1-5          bash $RUN sp500 config.yaml
 
 # Atualizar o codigo todos os dias as 4h UTC, para as correcoes que fizeres
 # no GitHub chegarem a VM sem teres de entrar nela.

@@ -43,6 +43,11 @@ case "$KIND" in
     *) echo "tipo desconhecido: $KIND (usa sweep, crypto ou sp500)" >&2; exit 2 ;;
 esac
 
+# Sem isto o Python guarda a saida em memoria quando escreve para ficheiro
+# em vez do terminal, e so a despeja ao terminar. O log parece parado
+# durante minutos e nao ha forma de saber se o scan progride ou encravou.
+export PYTHONUNBUFFERED=1
+
 STAMP="$(date -u +%Y%m%d)"
 LOG="$DEST/logs/${KIND}_$(basename "$CONFIG" .yaml)_${STAMP}.log"
 mkdir -p "$DEST/logs"
