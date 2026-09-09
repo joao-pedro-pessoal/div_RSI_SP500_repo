@@ -50,6 +50,15 @@ else
     git clone --depth 50 "$REPO_URL" "$DEST"
 fi
 
+# A VM do GCP vem com Ubuntu 22.04 / Python 3.10. O codigo e compativel,
+# mas convem ver a versao no log: se um dia algo falhar com um ImportError
+# estranho, e o primeiro sitio a olhar.
+echo "==> python: $(python3 --version)"
+PY_MINOR=$(python3 -c 'import sys; print(sys.version_info.minor)')
+if (( PY_MINOR < 10 )); then
+    echo "    AVISO: 3.10 ou superior e necessario" >&2
+fi
+
 echo "==> ambiente virtual"
 python3 -m venv "$DEST/.venv"
 "$DEST/.venv/bin/pip" install --quiet --upgrade pip
