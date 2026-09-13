@@ -53,6 +53,11 @@ CRON_TZ=UTC
 20 0,4,8,12,16,20 * * * bash $RUN crypto config_crypto_4h.yaml
 26 0 * * *             bash $RUN crypto config_crypto_daily.yaml
 
+# Divergencias antecipadas (pivot_right: 3), mesmo topico, etiquetadas.
+# Aos :32 e nao junto do normal: ambos pedem o ranking a CoinGecko e o
+# escalao gratuito devolve 429 quando dois scans coincidem.
+32 0,4,8,12,16,20 * * * bash $RUN crypto_cedo config_crypto_4h_cedo.yaml
+
 # S&P 500 — segunda a sexta.
 #
 # 21:45 UTC e nao 20:45: no verao americano sao 17:45 ET, no inverno 16:45
