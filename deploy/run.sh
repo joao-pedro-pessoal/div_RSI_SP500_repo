@@ -48,7 +48,14 @@ case "$KIND" in
         export ALERT_PREFIX="${ALERT_PREFIX_CEDO:-⚡}"
         MAIN="main_crypto.py"
         ;;
-    *) echo "tipo desconhecido: $KIND (usa sweep, crypto, crypto_cedo ou sp500)" >&2; exit 2 ;;
+    # COMP — compressao estrutural e rompimentos (porta do indicador Pine).
+    # Topico proprio se existir; senao cai no das divergencias, para nao
+    # aterrar no "General" sem ninguem dar por isso.
+    comp)
+        export TELEGRAM_TOPIC_ID="${TELEGRAM_TOPIC_ID_COMP:-${TELEGRAM_TOPIC_ID_CRYPTO:-}}"
+        MAIN="main_comp.py"
+        ;;
+    *) echo "tipo desconhecido: $KIND (usa sweep, crypto, crypto_cedo, comp ou sp500)" >&2; exit 2 ;;
 esac
 
 # Sem isto o Python guarda a saida em memoria quando escreve para ficheiro

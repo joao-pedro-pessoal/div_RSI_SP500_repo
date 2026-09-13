@@ -58,6 +58,12 @@ CRON_TZ=UTC
 # escalao gratuito devolve 429 quando dois scans coincidem.
 32 0,4,8,12,16,20 * * * bash $RUN crypto_cedo config_crypto_4h_cedo.yaml
 
+# COMP — rompimentos de estrutura.
+# Aos :38 e :44, a seguir a tudo o resto: e o ultimo da fila a pedir o
+# ranking a CoinGecko, e o que menos incomoda se falhar.
+38 0,4,8,12,16,20 * * * bash $RUN comp config_comp_4h.yaml
+44 0 * * *             bash $RUN comp config_comp_daily.yaml
+
 # S&P 500 — segunda a sexta.
 #
 # 21:45 UTC e nao 20:45: no verao americano sao 17:45 ET, no inverno 16:45

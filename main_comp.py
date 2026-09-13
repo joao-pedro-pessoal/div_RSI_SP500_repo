@@ -1,0 +1,189 @@
+#!/usr/bin/env python3
+"""
+COMP — compressao estrutural e rompimentos, top 100 por market cap (OKX perps).
+
+    python main_comp.py --dry-run --symbols BTC-USDT-SWAP   # teste local
+    python main_comp.py --dry-run                           # universo todo
+    python main_comp.py                                     # envia para o Telegram
+
+Porta do indicador Pine COMP v8. O detector esta em crypto_scanner/comp.py;
+a nota que interessa antes de mexer la esta no cabecalho desse ficheiro.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+from datetime import datetime, timezone
+import sys
+from pathlib import Path
+
+from crypto_scanner.config import load_config
+from crypto_scanner.provider import ProviderConfig, fetch_many
+from crypto_scanner.comp_scanner import CompScanner
+from crypto_scanner.state import SignalState, write_heartbeat
+from crypto_scanner.telegram_client import TelegramClient
+from crypto_scanner.universe import build_universe
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--config", default="config_comp_4h.yaml")
+    parser.add_argument("--dry-run", action="store_true",
+                        help="print alerts instead of sending them")
+    parser.add_argument("--symbols", nargs="*",
+                        help="explicit symbols, skipping the universe lookup")
+    parser.add_argument("--timeframe", action="append", dest="timeframes",
+                        help="restrict to one timeframe (repeatable)")
+    parser.add_argument("--skip-if-recent", type=int, default=0,
+                    help="sai se ja houve execucao bem sucedida ha menos de N minutos")
+    return parser.parse_args()
+
+
+
+def already_ran_recently(heartbeat_path: Path, minutes: int) -> bool:
+    """
+    Ja houve uma execucao bem sucedida ha menos de `minutes` minutos?
+
+    PORQUE EXISTE
+      Os workflows tem varios gatilhos por periodo, porque o GitHub descarta
+      cerca de 44% das execucoes agendadas. Tres tentativas sobem a taxa de
+      56% para ~91%.
+
+      Mas quando duas tentativas passam, a segunda repetiria o trabalho todo
+      -- download de 100 moedas incluido -- para nao produzir alerta nenhum
+      (a deduplicacao trata disso). Esta guarda faz a segunda sair de
+      imediato.
+    """
+    if minutes <= 0 or not heartbeat_path.exists():
+        return False
+    try:
+        payload = json.loads(heartbeat_path.read_text())
+    except Exception:
+        return False
+    if payload.get("status") != "ok":
+        return False
+    stamp = payload.get("ran_at")
+    if not stamp:
+        return False
+    try:
+        ran_at = datetime.fromisoformat(stamp)
+    except ValueError:
+        return False
+    if ran_at.tzinfo is None:
+        ran_at = ran_at.replace(tzinfo=timezone.utc)
+    age = (datetime.now(timezone.utc) - ran_at).total_seconds() / 60.0
+    if age < minutes:
+        print(f"[skip] ja correu com sucesso ha {age:.0f} min "
+              f"(limite {minutes}); nada a fazer")
+        return True
+    return False
+
+
+def main() -> int:
+    args = parse_args()
+    config = load_config(args.config)
+    telegram = TelegramClient(dry_run=args.dry_run)
+    heartbeat_path = Path(config.heartbeat_file)
+
+    if already_ran_recently(heartbeat_path, args.skip_if_recent):
+        return 0
+
+    try:
+        if args.symbols:
+            symbols = [s.upper() for s in args.symbols]
+            print(f"[universe] {len(symbols)} symbols supplied explicitly")
+        else:
+            coins = build_universe(
+                limit=config.universe.limit,
+                exclude_stablecoins=config.universe.exclude_stablecoins,
+                exclude_wrapped=config.universe.exclude_wrapped,
+                snapshot_dir=Path(config.universe.snapshot_dir),
+            )
+            symbols = [c.exchange_symbol for c in coins]
+
+        # Ver nota em main_sweep.py sobre o volume de mensagens.
+        if getattr(config.telegram, "send_start_notice", True):
+            telegram.send(
+                "\U0001F50D COMP a começar\n"
+                f"Timeframes: {', '.join(config.comp.timeframes)}\n"
+                f"Moedas: {len(symbols)}"
+            )
+
+        provider_config = ProviderConfig(
+            bars=config.data.bars_4h,
+            sleep_between=config.data.sleep_between,
+            retries=config.data.retries,
+        )
+        print(f"[provider] downloading 4h bars for {len(symbols)} symbols...")
+        market_data, download_failures = fetch_many(symbols, provider_config)
+        print(f"[provider] {len(market_data)}/{len(symbols)} downloaded")
+
+        if not market_data:
+            raise RuntimeError("no market data downloaded")
+
+        scanner = CompScanner(config)
+        # O construtor ja carrega o ficheiro; nao ha metodo load().
+        state = SignalState(Path(config.state_file))
+
+        new_signals = []
+        skipped = 0
+        scan_errors: dict[str, str] = {}
+
+        for symbol, bars in market_data.items():
+            report = scanner.scan_symbol(symbol, bars, timeframes=args.timeframes)
+            if report.skipped:
+                skipped += 1
+            scan_errors.update(report.errors)
+            for signal in report.signals:
+                if not state.contains(signal.signal_id):
+                    new_signals.append(signal)
+
+        # State is saved during the loop, not only after it. If the process
+        # dies midway, already-delivered alerts stay marked and are not
+        # re-sent on the next run.
+        # Ver nota em main_sweep.py sobre o envio agrupado.
+        ordered = sorted(new_signals, key=lambda x: (x.timeframe, x.ticker, x.kind))
+        sent, send_failures = telegram.send_comp_signals(ordered)
+
+        if sent > 0:
+            for signal in ordered[:sent] if send_failures else ordered:
+                state.mark_sent(signal.signal_id)
+        if not args.dry_run:
+            state.save()
+
+        summary = {
+            "universe": len(symbols),
+            "downloaded": len(market_data),
+            "download_failures": len(download_failures),
+            "data_quality_skips": skipped,
+            "scan_errors": len(scan_errors),
+            "new_signals": len(new_signals),
+            "sent": sent,
+            "send_failures": send_failures,
+        }
+        write_heartbeat(heartbeat_path, status="ok", details=summary)
+
+        if config.telegram.send_heartbeat:
+            telegram.send(
+                "\U00002705 COMP concluído\n"
+                f"Moedas: {summary['downloaded']}/{summary['universe']}\n"
+                f"Novos sinais: {summary['new_signals']}\n"
+                f"Alertas enviados: {sent}\n"
+                f"Falhas download: {summary['download_failures']}\n"
+                f"Bloqueadas por dados: {skipped}\n"
+                f"Erros scan: {len(scan_errors)}"
+            )
+        print(json.dumps(summary, indent=2))
+        return 0
+
+    except Exception as exc:
+        write_heartbeat(heartbeat_path, status="error", details={"error": str(exc)})
+        print(f"fatal: {type(exc).__name__}: {exc}", file=sys.stderr)
+        if not args.dry_run:
+            telegram.send(f"\U0000274C COMP falhou\n{type(exc).__name__}: {exc}")
+        return 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

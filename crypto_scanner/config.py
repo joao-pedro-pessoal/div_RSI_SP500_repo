@@ -38,6 +38,56 @@ class ScannerConfig:
 
 
 @dataclass
+class CompConfig:
+    """
+    Parametros do COMP. Os nomes seguem os inputs do indicador Pine, para
+    uma alteracao feita no grafico poder ser copiada para aqui sem traducao.
+    """
+    atr_period: int = 14
+    pivot_left: int = 5
+    pivot_right: int = 5
+    max_scan: int = 300
+    max_pivots: int = 12
+
+    # Trendlines
+    min_touches: int = 3
+    tol_atr: float = 0.25
+    body_tol_atr: float = 0.10
+    tol_span_k: float = 0.50
+    span_exp: float = 0.50
+    fit_k: float = 1.50
+    max_slope_atr: float = 0.25
+    min_touch_sep: int = 3
+    min_span: int = 15
+    relevance_bars: int = 30
+    anchor: str = "both"          # wick | body | both
+
+    # Ancora da consolidacao
+    anchor_after_impulse: bool = True
+    impulse_atr: float = 2.0
+    anchor_window: int = 25
+    anchor_penalty: float = 0.60
+
+    # Zonas horizontais
+    zone_min_touches: int = 3
+    zone_tol_atr: float = 0.50
+    zone_min_sep: int = 5
+    zone_react_atr: float = 1.0
+    zone_max_pivots: int = 40
+
+    # Compressao e rompimento
+    max_apex: int = 80
+    break_buffer_atr: float = 0.05
+
+    # Fora de compressao, que rompimentos ainda contam. Tirar "zone" corta a
+    # maior fonte de ruido: ha SEMPRE uma zona acima e outra abaixo do preco,
+    # enquanto uma trendline com tres toques e rara.
+    signal_sources: list[str] = field(default_factory=lambda: ["trendline"])
+
+    timeframes: list[str] = field(default_factory=lambda: ["4h"])
+
+
+@dataclass
 class UniverseConfig:
     limit: int = 100
     exclude_stablecoins: bool = True
@@ -80,6 +130,7 @@ class AppConfig:
     data: DataConfig = field(default_factory=DataConfig)
     validation: ValidationConfig = field(default_factory=ValidationConfig)
     telegram: TelegramConfig = field(default_factory=TelegramConfig)
+    comp: CompConfig = field(default_factory=CompConfig)
     state_file: str = "state/signals.json"
     heartbeat_file: str = "state/heartbeat.json"
 
@@ -99,6 +150,7 @@ def load_config(path: str | Path = "config.yaml") -> AppConfig:
         data=_build(DataConfig, raw.get("data")),
         validation=_build(ValidationConfig, raw.get("validation")),
         telegram=_build(TelegramConfig, raw.get("telegram")),
+        comp=_build(CompConfig, raw.get("comp")),
         state_file=raw.get("state_file", "state/signals.json"),
         heartbeat_file=raw.get("heartbeat_file", "state/heartbeat.json"),
     )

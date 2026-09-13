@@ -1,0 +1,75 @@
+# COMP em 1D, 3D e 1W — compressao estrutural e rompimentos.
+#
+# Porta do indicador Pine COMP v8. Os nomes dos parametros seguem os inputs
+# do indicador, para uma calibracao feita no grafico poder ser copiada para
+# aqui sem traducao.
+
+comp:
+  timeframes: ["1D", "3D", "1W"]
+
+  pivot_left: 5
+  pivot_right: 5
+  # Teto absoluto de historico: nenhum pivo, linha ou zona pode ser mais
+  # antigo do que isto. Tambem e o que limita o custo da busca.
+  max_scan: 300
+  max_pivots: 12
+
+  # Trendlines
+  min_touches: 3          # a regra do "terceiro ponto"; com 2, dois pivos
+                          # quaisquer fazem uma linha por construcao
+  tol_atr: 0.25
+  body_tol_atr: 0.10      # o CORPO e o limite da linha; os pavios atravessam
+  tol_span_k: 0.50
+  span_exp: 0.50
+  fit_k: 1.50
+  max_slope_atr: 0.25
+  min_touch_sep: 3
+  min_span: 15
+  relevance_bars: 30
+  anchor: both            # wick | body | both
+
+  anchor_after_impulse: true
+  impulse_atr: 2.0
+  anchor_window: 25
+  anchor_penalty: 0.60
+
+  # Zonas horizontais
+  zone_min_touches: 3
+  zone_tol_atr: 0.50
+  zone_min_sep: 5
+  zone_react_atr: 1.0
+  zone_max_pivots: 40
+
+  max_apex: 80
+  break_buffer_atr: 0.05
+
+  # Fora de compressao, so trendlines. Ha SEMPRE uma zona acima e outra
+  # abaixo do preco por construcao, portanto qualquer movimento com alguma
+  # extensao acaba por fechar fora de uma delas. Acrescentar "zone" aqui
+  # multiplica os alertas -- ver como corre uma semana antes de o fazer.
+  signal_sources: ["trendline"]
+
+universe:
+  limit: 100
+  exclude_stablecoins: true
+  exclude_wrapped: true
+  snapshot_dir: universe
+
+data:
+  # 4200 barras 4h = ~700 dias. Ditado pelo SEMANAL: com menos, 1W tem
+  # poucas dezenas de velas e nunca chega ao min_span das trendlines.
+  bars_4h: 4200
+  sleep_between: 0.15
+  retries: 3
+
+validation:
+  min_rows: 120
+  max_gap_bars: 12
+  max_single_bar_move: 0.60
+
+telegram:
+  send_heartbeat: false
+  send_start_notice: false
+
+state_file: state/comp_daily_signals.json
+heartbeat_file: state/comp_daily_heartbeat.json

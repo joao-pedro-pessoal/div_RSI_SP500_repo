@@ -237,6 +237,58 @@ class TelegramClient:
         )
         return self.send(text)
 
+    def send_comp(self, signal) -> bool:
+        """Alerta do COMP: rompimento de estrutura, com ou sem compressao."""
+        up = signal.kind == "breakout_up"
+        icon = "\U0001F7E2" if up else "\U0001F534"
+        seta = "\u2191" if up else "\u2193"
+        base = self._esc(self._base_asset(signal.ticker))
+        chart = urllib.parse.quote(f"OKX:{self._base_asset(signal.ticker)}USDT.P")
+        high_tf = self._is_high_tf(signal.timeframe)
+
+        # Um rompimento em compressao tem DUAS estruturas a concordar; um
+        # rompimento solto tem uma linha so. Titulos diferentes porque nao
+        # sao a mesma coisa -- tratados igual no ecra, acabam tratados igual
+        # na execucao.
+        titulo = "COMP \u2014 rompimento" if signal.in_compression else "Rompimento de estrutura"
+        head = f"<b>{icon} {titulo} {seta}</b>" if high_tf else f"{icon} {titulo} {seta}"
+
+        contexto = (f"Compress\u00e3o: {self._esc(signal.compression_type)}"
+                    f"{f' · ápex ~{signal.apex_bars:.0f} barras' if signal.apex_bars else ''}"
+                    if signal.in_compression else "Sem compress\u00e3o ativa")
+        estrutura = ("Trendline" if signal.source == "trendline" else "Zona horizontal")
+
+        text = (
+            f"{self._banner(signal.timeframe, up)}"
+            f"{head}\n"
+            f"<b>{base} \u2014 {signal.timeframe}</b> \u2014 perp\n\n"
+            f"{estrutura}: {signal.touches} toques · {signal.span_bars} barras\n"
+            f"N\u00edvel: ${self._fmt_price(signal.level)}\n"
+            f"Fecho: ${self._fmt_price(signal.close)}\n"
+            f"{contexto}\n"
+            f"Vela: {signal.bar_time.strftime('%Y-%m-%d %H:%M')} "
+            f"({self._candle_age(signal.bar_time, signal.timeframe)})\n"
+            f"\U0001F4CA https://www.tradingview.com/chart/?symbol={chart}"
+        )
+        return self.send(text)
+
+    def send_comp_signals(self, signals: list) -> tuple[int, int]:
+        """
+        Um por mensagem, sem agrupar.
+
+        Ao contrario das divergencias, um rompimento traz nivel, toques e
+        contexto de compressao -- informacao que nao cabe numa linha de
+        digest sem perder o que a torna accionavel. Se o volume incomodar,
+        a resposta e apertar os filtros, nao encolher a mensagem.
+        """
+        enviados = falhados = 0
+        for signal in signals:
+            if self.send_comp(signal):
+                enviados += 1
+            else:
+                falhados += 1
+        return enviados, falhados
+
     def send_sweep(self, sweep) -> bool:
         """Alerta de varrimento de liquidez."""
         bullish = sweep.kind == "bullish_sweep"
