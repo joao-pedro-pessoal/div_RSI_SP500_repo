@@ -31,12 +31,21 @@ class TelegramClient:
         self.topic_id = topic_id if topic_id is not None else os.getenv("TELEGRAM_TOPIC_ID")
         if self.topic_id is not None:
             self.topic_id = str(self.topic_id).strip() or None
+        # Etiqueta opcional no inicio de cada mensagem. Existe para dois
+        # scanners poderem partilhar o mesmo topico sem se confundirem: sem
+        # ela, o alerta antecipado e o confirmado sao indistinguiveis.
+        # Vazia por omissao, portanto nao muda nada em quem nao a define.
+        self.prefix = os.getenv("ALERT_PREFIX", "").strip()
         self.dry_run = dry_run
         if not self.dry_run and (not self.token or not self.chat_id):
             raise RuntimeError("TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID are required")
 
     def send(self, text: str) -> bool:
         """Devolve False se nao conseguiu enviar; NUNCA levanta excecao."""
+        # Aqui e nao em cada metodo de montagem: um so sitio apanha sinais,
+        # digests, varrimentos e heartbeats.
+        if self.prefix:
+            text = f"{self.prefix} {text}"
         if self.dry_run:
             print(text)
             return True
