@@ -40,7 +40,15 @@ case "$KIND" in
     sweep)  export TELEGRAM_TOPIC_ID="${TELEGRAM_TOPIC_ID_SWEEP:-}"  ; MAIN="main_sweep.py"  ;;
     crypto) export TELEGRAM_TOPIC_ID="${TELEGRAM_TOPIC_ID_CRYPTO:-}" ; MAIN="main_crypto.py" ;;
     sp500)  export TELEGRAM_TOPIC_ID="${TELEGRAM_TOPIC_ID_SP500:-}"  ; MAIN="main.py"        ;;
-    *) echo "tipo desconhecido: $KIND (usa sweep, crypto ou sp500)" >&2; exit 2 ;;
+    # Divergencias antecipadas (pivot_right mais baixo). Vai para o MESMO
+    # topico das divergencias normais, por isso leva etiqueta: sem ela nao
+    # se distingue um alerta antecipado de um confirmado.
+    crypto_cedo)
+        export TELEGRAM_TOPIC_ID="${TELEGRAM_TOPIC_ID_CRYPTO:-}"
+        export ALERT_PREFIX="${ALERT_PREFIX_CEDO:-⚡}"
+        MAIN="main_crypto.py"
+        ;;
+    *) echo "tipo desconhecido: $KIND (usa sweep, crypto, crypto_cedo ou sp500)" >&2; exit 2 ;;
 esac
 
 # Sem isto o Python guarda a saida em memoria quando escreve para ficheiro
