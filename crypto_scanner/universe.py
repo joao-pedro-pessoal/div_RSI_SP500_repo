@@ -1,10 +1,10 @@
 """
-universe.py — top N coins by market cap, mapped to OKX USDT perpetual swaps.
+universe.py — top N coins by market cap, mapped to Bybit USDT perpetual swaps.
 
 DATA PROVENANCE
   Ranking : https://api.coingecko.com/api/v3/coins/markets
             Public endpoint, no API key. Sent: nothing but query parameters.
-  Symbols : https://www.okx.com/api/v5/public/instruments
+  Symbols : https://api.bybit.com/v5/market/instruments-info
             Public endpoint, no key, no authentication.
   Stored  : universe/ranking_<date>.json on disk, committed to the repo.
             Nothing is sent anywhere else.
@@ -219,7 +219,7 @@ def build_universe(
     exclude_wrapped: bool = True,
     snapshot_dir: Path | None = None,
 ) -> list[Coin]:
-    """Ranked coins that actually have an OKX USDT perpetual swap."""
+    """Ranked coins that actually have an Bybit USDT perpetual swap."""
     ranking = fetch_ranking()
     if not ranking:
         raise RuntimeError("empty ranking from CoinGecko")
@@ -227,7 +227,7 @@ def build_universe(
     stable_ids = fetch_stablecoin_ids() if exclude_stablecoins else set()
     perps = fetch_perpetual_symbols()
     if not perps:
-        raise RuntimeError("no perpetual symbols returned by OKX")
+        raise RuntimeError("no perpetual symbols returned by Bybit")
 
     coins: list[Coin] = []
     dropped = {"stablecoin": 0, "wrapped": 0, "no_perp": 0}
@@ -252,7 +252,7 @@ def build_universe(
         # step: tickers collide and are not standardised across venues.
         # Verifying against the live instrument list is what keeps this
         # honest — an unverified guess would silently scan the wrong asset.
-        exchange_symbol = f"{symbol}-USDT-SWAP"     # OKX instId format
+        exchange_symbol = f"{symbol}USDT"     # Bybit linear USDT perpetual
         if exchange_symbol not in perps:
             dropped["no_perp"] += 1
             continue
@@ -282,6 +282,7 @@ def save_snapshot(coins: list[Coin], directory: Path) -> Path:
     path = directory / f"ranking_{stamp}.json"
     path.write_text(json.dumps({
         "captured_at": datetime.now(timezone.utc).isoformat(),
+        "exchange": "bybit",
         "coins": [asdict(c) for c in coins],
     }, indent=2))
     return path

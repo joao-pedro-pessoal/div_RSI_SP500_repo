@@ -1,30 +1,8 @@
+"""Public Bybit V5 OHLCV for linear USDT perpetuals (no API key).
+
+Only closed candles are used, based on Bybit's response time, never the
+VM clock. There is no automatic fallback to another exchange.
 """
-provider.py — OHLCV for OKX USDT perpetual swaps.
-
-PORQUE OKX E NAO BYBIT
-  Medido a partir de um runner do GitHub Actions (IP Azure, EUA):
-
-    api.bybit.com    403  "CloudFront is configured to block access
-                           from your country"
-    api.bytick.com   403  mesmo bloqueio (o espelho nao ajuda)
-    fapi.binance.com 451  restricao legal
-    www.okx.com      200  funciona
-
-  A Bybit funciona a partir de Portugal, o que torna isto especialmente
-  traicoeiro: o codigo passava em todos os testes locais e falhava em
-  producao.
-
-  Consequencia a assumir: os precos passam a ser da OKX. Perpetuos das
-  duas exchanges seguem-se de perto mas nao sao identicos, portanto um
-  sinal aqui pode nao coincidir exatamente com o grafico da Bybit.
-
-DATA PROVENANCE
-  Source : https://www.okx.com/api/v5/market/{candles,history-candles}
-  Method : public HTTPS GET, no key, no authentication
-  Sent   : instId, bar, pagination cursor. Nothing else.
-  Stored : in memory for the duration of the scan.
-"""
-
 from __future__ import annotations
 
 import json
@@ -36,26 +14,20 @@ from dataclasses import dataclass
 
 import pandas as pd
 
-API_ROOT = "https://www.okx.com/api/v5"
-HISTORY_URL = f"{API_ROOT}/market/history-candles"
-RECENT_URL = f"{API_ROOT}/market/candles"
-INSTRUMENTS_URL = f"{API_ROOT}/public/instruments"
-
-USER_AGENT = "CryptoDivergenceScanner/1.0"
-
-BAR_1H = "1H"
-BAR_4H = "4H"
-PAGE_LIMIT = 100          # maximo da OKX no endpoint historico
-
-# Rate limit publicado: 20 pedidos por 2 segundos por IP no history-candles.
-# 0.12s entre pedidos da ~8/s, com margem.
+API_ROOT = "https://api.bybit.com/v5"
+KLINES_URL = f"{API_ROOT}/market/kline"
+INSTRUMENTS_URL = f"{API_ROOT}/market/instruments-info"
+USER_AGENT = "CryptoDivergenceScanner/2.0"
+BAR_1H = "60"
+BAR_4H = "240"
+PAGE_LIMIT = 1000
 DEFAULT_SLEEP = 0.12
 
 
 @dataclass
 class ProviderConfig:
-    bars: int = 4200              # ~700 dias de barras 4h
-    bar: str = BAR_4H             # "1H", "4H", ... (codigo de bar da OKX)
+    bars: int = 4200
+    bar: str = BAR_4H
     sleep_between: float = DEFAULT_SLEEP
     retries: int = 3
     timeout: int = 30
@@ -68,122 +40,123 @@ def _get(url: str, params: dict, timeout: int) -> dict:
         with urllib.request.urlopen(request, timeout=timeout) as response:
             return json.loads(response.read().decode("utf-8"))
     except urllib.error.HTTPError as exc:
-        host = urllib.parse.urlparse(full).netloc
+        hint = ""
+        if exc.code == 403:
+            hint = "; verificar restricoes do IP/regiao da VM (Bybit bloqueia IPs dos EUA)"
         raise urllib.error.HTTPError(
-            full, exc.code, f"{exc.reason} (host: {host})", exc.headers, None
+            full, exc.code, f"{exc.reason} (host: api.bybit.com){hint}", exc.headers, None
         ) from None
 
 
 def _get_retry(url: str, params: dict, config: ProviderConfig) -> dict:
-    for attempt in range(config.retries):
+    for attempt in range(max(1, config.retries)):
         try:
             payload = _get(url, params, config.timeout)
-            if payload.get("code") == "0":
+            if payload.get("retCode") == 0:
                 return payload
-            if payload.get("code") == "50011" and attempt < config.retries - 1:
-                time.sleep(1.5 * (attempt + 1))     # rate limited
-                continue
-            raise RuntimeError(f"OKX code {payload.get('code')}: {payload.get('msg')}")
-        except urllib.error.HTTPError as exc:
-            if exc.code in (429, 502, 503, 504) and attempt < config.retries - 1:
+            if payload.get("retCode") in (10006, 10000, 10016) and attempt < config.retries - 1:
                 time.sleep(2.0 * (attempt + 1))
                 continue
-            raise
-    raise RuntimeError("unreachable")
+            raise RuntimeError(f"Bybit code {payload.get('retCode')}: {payload.get('retMsg')}")
+        except urllib.error.HTTPError as exc:
+            if exc.code not in (429, 502, 503, 504) or attempt >= config.retries - 1:
+                raise
+            time.sleep(2.0 * (attempt + 1))
+        except (urllib.error.URLError, TimeoutError):
+            if attempt >= config.retries - 1:
+                raise
+            time.sleep(2.0 * (attempt + 1))
+    raise RuntimeError("Bybit request failed")
 
 
 def fetch_perpetual_symbols(timeout: int = 30) -> set[str]:
-    """
-    USDT-margined perpetual swaps currently live on OKX.
-
-    instId format is "BTC-USDT-SWAP". Only linear contracts settled in
-    USDT with state "live" are kept, so expired or pre-launch instruments
-    never enter the universe.
-    """
-    payload = _get(INSTRUMENTS_URL, {"instType": "SWAP"}, timeout)
-    if payload.get("code") != "0":
-        raise RuntimeError(f"OKX instruments: {payload.get('msg')}")
-    return {
-        item["instId"]
-        for item in payload.get("data", [])
-        if item.get("state") == "live"
-        and item.get("settleCcy") == "USDT"
-        and item.get("ctType") == "linear"
-    }
-
-
-def _rows_to_frame(rows: list[list]) -> pd.DataFrame:
-    """
-    OKX candle layout: [ts, o, h, l, c, vol, volCcy, volCcyQuote, confirm]
-
-    `confirm` is "1" for a closed candle and "0" for the one still forming.
-    Filtering on it is more reliable than comparing timestamps to the clock,
-    which is what the Bybit version had to do.
-    """
-    frame = pd.DataFrame(rows, columns=[
-        "ts", "open", "high", "low", "close", "vol", "volCcy", "volCcyQuote", "confirm",
-    ])
-    frame = frame[frame["confirm"].astype(str) == "1"]
-    if frame.empty:
-        return pd.DataFrame()
-
-    frame = frame.copy()
-    frame["timestamp"] = pd.to_datetime(frame["ts"].astype("int64"), unit="ms", utc=True)
-    for column in ("open", "high", "low", "close", "vol"):
-        frame[column] = pd.to_numeric(frame[column], errors="coerce")
-
-    out = frame.set_index("timestamp")[["open", "high", "low", "close", "vol"]]
-    return out.rename(columns={"vol": "volume"})
-
-
-def fetch_klines(inst_id: str, config: ProviderConfig = ProviderConfig()) -> pd.DataFrame:
-    """
-    4h OHLCV for one perpetual swap, oldest first.
-
-    OKX returns newest-first and caps each page at 100 candles, so history
-    is walked backwards with the `after` cursor: each request asks for
-    candles strictly older than the oldest one collected so far.
-    """
-    collected: list[list] = []
-    cursor: str | None = None
-
-    while len(collected) < config.bars:
-        params = {"instId": inst_id, "bar": config.bar, "limit": PAGE_LIMIT}
-        if cursor is not None:
-            params["after"] = cursor
-
-        # First page from the recent endpoint so the newest closed candle is
-        # never missed; history-candles can lag slightly behind it.
-        url = RECENT_URL if cursor is None else HISTORY_URL
-        payload = _get_retry(url, params, config)
-        rows = payload.get("data", [])
-        if not rows:
-            break
-
-        collected.extend(rows)
-        cursor = rows[-1][0]              # oldest ts on this page
-        if len(rows) < PAGE_LIMIT:
-            break
+    """All Trading linear USDT perpetuals, including paginated instruments."""
+    config = ProviderConfig(timeout=timeout)
+    symbols: set[str] = set()
+    seen_cursors: set[str] = set()
+    params = {"category": "linear", "status": "Trading", "limit": 1000}
+    while True:
+        result = _get_retry(INSTRUMENTS_URL, params, config)["result"]
+        symbols.update(
+            item["symbol"] for item in result["list"]
+            if item.get("status") == "Trading"
+            and item.get("contractType") == "LinearPerpetual"
+            and item.get("settleCoin") == "USDT"
+            and item.get("quoteCoin") == "USDT"
+            and not item.get("isPreListing", False)
+        )
+        cursor = result.get("nextPageCursor")
+        if not cursor:
+            return symbols
+        if cursor in seen_cursors:
+            raise RuntimeError("Bybit instruments pagination did not advance")
+        seen_cursors.add(cursor)
+        params["cursor"] = cursor
         time.sleep(config.sleep_between)
 
+
+def _interval(bar: str) -> str:
+    interval = {"1H": BAR_1H, "4H": BAR_4H}.get(str(bar).upper(), str(bar))
+    if interval not in (BAR_1H, BAR_4H):
+        raise ValueError(f"Unsupported base interval: {bar}; use 60 or 240")
+    return interval
+
+
+def _rows_to_frame(rows: list[list], *, interval: str, server_time_ms: int) -> pd.DataFrame:
+    if not rows:
+        return pd.DataFrame()
+    frame = pd.DataFrame(rows, columns=["ts", "open", "high", "low", "close", "volume", "turnover"])
+    starts = pd.to_numeric(frame["ts"], errors="raise").astype("int64")
+    frame["timestamp"] = pd.to_datetime(starts, unit="ms", utc=True)
+    frame = frame.loc[starts + int(interval) * 60_000 <= server_time_ms].copy()
+    for column in ("open", "high", "low", "close", "volume"):
+        frame[column] = pd.to_numeric(frame[column], errors="coerce")
+    out = frame.set_index("timestamp")[["open", "high", "low", "close", "volume"]]
+    return out[~out.index.duplicated(keep="last")].sort_index().dropna()
+
+
+def fetch_klines(inst_id: str, config: ProviderConfig | None = None) -> pd.DataFrame:
+    config = config or ProviderConfig()
+    if config.bars <= 0:
+        raise ValueError("bars must be positive")
+    interval = _interval(config.bar)
+    # Accept old explicit CLI symbols during migration; universe uses BTCUSDT.
+    symbol = inst_id.upper().replace("-USDT-SWAP", "USDT")
+    collected: dict[int, list] = {}
+    cursor: int | None = None
+    server_time_ms: int | None = None
+    # One extra row allows for the current, unclosed candle on the first page.
+    while len(collected) < config.bars + 1:
+        limit = min(PAGE_LIMIT, config.bars + 1 - len(collected))
+        params = {"category": "linear", "symbol": symbol, "interval": interval, "limit": limit}
+        if cursor is not None:
+            params["end"] = cursor
+        payload = _get_retry(KLINES_URL, params, config)
+        if server_time_ms is None:
+            server_time_ms = int(payload["time"])
+            if server_time_ms <= 0:
+                raise RuntimeError("Invalid Bybit server time")
+        rows = payload["result"]["list"]
+        if not rows:
+            break
+        oldest = min(int(row[0]) for row in rows)
+        if cursor is not None and oldest > cursor:
+            raise RuntimeError("Bybit kline pagination did not advance")
+        collected.update((int(row[0]), row) for row in rows)
+        cursor = oldest - 1  # end is inclusive; exclude the oldest fetched row
+        if len(rows) < limit:
+            break
+        time.sleep(config.sleep_between)
     if not collected:
         return pd.DataFrame()
-
-    frame = _rows_to_frame(collected)
-    if frame.empty:
-        return frame
-
-    out = frame[~frame.index.duplicated(keep="last")].sort_index().dropna()
-    out.index.name = "timestamp"
-    return out
+    return _rows_to_frame(list(collected.values()), interval=interval,
+                          server_time_ms=server_time_ms).tail(config.bars)
 
 
-def fetch_many(
-    symbols: list[str],
-    config: ProviderConfig = ProviderConfig(),
-    verbose: bool = True,
-) -> tuple[dict[str, pd.DataFrame], list[str]]:
-    """Returns (data, failed). One failure never stops the scan."""
+def fetch_many(symbols: list[str], config: ProviderConfig | None = None,
+               verbose: bool = True) -> tuple[dict[str, pd.DataFrame], list[str]]:
+    """Returns (data, failed). One symbol failure never stops the scan."""
+    config = config or ProviderConfig()
     data: dict[str, pd.DataFrame] = {}
     failed: list[str] = []
     for index, symbol in enumerate(symbols, start=1):
@@ -198,6 +171,6 @@ def fetch_many(
             if verbose:
                 print(f"[provider] {symbol}: {type(exc).__name__}: {exc}")
         if verbose and index % 10 == 0:
-            print(f"[provider] {index}/{len(symbols)}", flush=True)
+            print(f"[provider] Bybit {index}/{len(symbols)}", flush=True)
         time.sleep(config.sleep_between)
     return data, failed

@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-COMP — compressao estrutural e rompimentos, top 100 por market cap (OKX perps).
+COMP — compressao estrutural e rompimentos, top 100 por market cap (Bybit perps).
 
-    python main_comp.py --dry-run --symbols BTC-USDT-SWAP   # teste local
+    python main_comp.py --dry-run --symbols BTCUSDT   # teste local
     python main_comp.py --dry-run                           # universo todo
     python main_comp.py                                     # envia para o Telegram
 

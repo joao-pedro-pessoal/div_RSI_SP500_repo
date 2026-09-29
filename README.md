@@ -1,3 +1,5 @@
+> **Migração Bybit + destaque BTC:** ver [instruções de atualização](deploy/ATUALIZAR_BYBIT.md). Testar o acesso à Bybit na VM antes de atualizar a produção.
+
 # S&P 500 Trading Scanners
 
 Infraestrutura para **5 scanners de trading**, com o Bot #1 implementado: divergências regulares entre preço e RSI nas ações do S&P 500.

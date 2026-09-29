@@ -31,8 +31,8 @@ BLOCK=$(cat <<EOF
 $MARK_START
 # Horarios em UTC. A VM deve estar em UTC -- ver o guia.
 #
-# Minuto :02 e nao :00: a vela fecha aos :00 e a OKX precisa de um momento
-# para a marcar como fechada (confirm=1). Um minuto e apertado.
+# Minuto :02 e nao :00: margem para a publicacao da vela fechada.
+# O provider Bybit filtra pelo timestamp de fecho e hora do servidor.
 CRON_TZ=UTC
 
 # HORARIOS ESPACADOS.

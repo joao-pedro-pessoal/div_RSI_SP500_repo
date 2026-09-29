@@ -1,3 +1,5 @@
+> **Guia histórico da instalação OKX.** Para a versão Bybit, seguir [ATUALIZAR_BYBIT.md](ATUALIZAR_BYBIT.md). A recomendação de uma VM nos EUA abaixo não é compatível com a API Bybit; não aplicar este guia como instalação Bybit.
+
 # Correr os scanners numa VM Google Cloud (gratuito para sempre)
 
 O GitHub Actions descartava cerca de 44% das execucoes agendadas. O cron de

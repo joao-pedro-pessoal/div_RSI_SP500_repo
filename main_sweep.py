@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """
-Liquidity sweep scanner — top 100 by market cap, OKX USDT perpetuals.
+Liquidity sweep scanner — top 100 by market cap, Bybit USDT perpetuals.
 
 Deteta varrimentos de stops: uma tendencia definida por pivots sucessivos,
 seguida de uma vela que vai ate a ORIGEM dessa tendencia e fecha de volta
 perto de onde abriu.
 
-    python main_sweep.py --dry-run --symbols BTC-USDT-SWAP ETH-USDT-SWAP
+    python main_sweep.py --dry-run --symbols BTCUSDT ETHUSDT
     python main_sweep.py --dry-run
     python main_sweep.py
 """
@@ -108,7 +108,7 @@ def main() -> int:
 
     telegram_cfg = cfg.get("telegram", {})
 
-    if already_ran_recently(Path(heartbeat_file), args.skip_if_recent):
+    if not args.dry_run and already_ran_recently(Path(heartbeat_file), args.skip_if_recent):
         return 0
 
     try:
@@ -131,7 +131,7 @@ def main() -> int:
             telegram.send(
                 "\U0001F50D Sweep scanner a começar\n"
                 f"Timeframes: {', '.join(timeframes)}\n"
-                f"Moedas: {len(symbols)}"
+                f"Moedas: {len(symbols)}\nFonte: Bybit · perpétuos USDT"
             )
 
         need_4h = any(t in ("4h", "1D", "3D") for t in timeframes)
@@ -183,7 +183,7 @@ def main() -> int:
         # demoraram ~53 min por causa dos 429 do Telegram, e o job era morto
         # pelo timeout antes de acabar. Dez sinais por mensagem reduzem 73
         # envios a 8.
-        ordered = sorted(new_signals, key=lambda s: (s.timeframe, s.symbol, s.kind))
+        ordered = sorted(new_signals, key=TelegramClient.delivery_key)
         sent, send_failures = telegram.send_sweeps(ordered)
 
         # So se marca como enviado o que saiu. Se o envio falhou, o sinal
@@ -205,7 +205,8 @@ def main() -> int:
             "sent": sent,
             "send_failures": send_failures,
         }
-        write_heartbeat(Path(heartbeat_file), status="ok", details=summary)
+        if not args.dry_run:
+            write_heartbeat(Path(heartbeat_file), status="ok", details=summary)
 
         if telegram_cfg.get("send_heartbeat", True):
             telegram.send(
@@ -225,7 +226,8 @@ def main() -> int:
         return 0
 
     except Exception as exc:
-        write_heartbeat(Path(heartbeat_file), status="error", details={"error": str(exc)})
+        if not args.dry_run:
+            write_heartbeat(Path(heartbeat_file), status="error", details={"error": str(exc)})
         print(f"fatal: {type(exc).__name__}: {exc}", file=sys.stderr)
         if not args.dry_run:
             telegram.send(f"\U0000274C Sweep scanner falhou\n{type(exc).__name__}: {exc}")

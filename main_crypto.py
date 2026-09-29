@@ -2,9 +2,9 @@
 """
 Crypto RSI divergence scanner — top 100 by market cap, Bybit USDT perpetuals.
 
-    python main.py --dry-run --symbols BTCUSDT ETHUSDT     # local test
-    python main.py --dry-run                               # full universe
-    python main.py                                         # send to Telegram
+    python main_crypto.py --dry-run --symbols BTCUSDT ETHUSDT     # local test
+    python main_crypto.py --dry-run                               # full universe
+    python main_crypto.py                                         # send to Telegram
 """
 
 from __future__ import annotations
@@ -83,7 +83,7 @@ def main() -> int:
     telegram = TelegramClient(dry_run=args.dry_run)
     heartbeat_path = Path(config.heartbeat_file)
 
-    if already_ran_recently(heartbeat_path, args.skip_if_recent):
+    if not args.dry_run and already_ran_recently(heartbeat_path, args.skip_if_recent):
         return 0
 
     try:
@@ -104,7 +104,7 @@ def main() -> int:
             telegram.send(
                 "\U0001F50D Crypto divergence a começar\n"
                 f"Timeframes: {', '.join(config.scanner.timeframes)}\n"
-                f"Moedas: {len(symbols)}"
+                f"Moedas: {len(symbols)}\nFonte: Bybit · perpétuos USDT"
             )
 
         provider_config = ProviderConfig(
@@ -136,11 +136,10 @@ def main() -> int:
                 if not state.contains(signal.signal_id):
                     new_signals.append(signal)
 
-        # State is saved during the loop, not only after it. If the process
-        # dies midway, already-delivered alerts stay marked and are not
-        # re-sent on the next run.
-        # Ver nota em main_sweep.py sobre o envio agrupado.
-        ordered = sorted(new_signals, key=lambda x: (x.timeframe, x.ticker, x.kind))
+        # Delivery and state marking share this order. Sending stops on the
+        # first failed message, so ordered[:sent] is exactly the sent prefix.
+        # A process crash before state.save() can still resend that prefix.
+        ordered = sorted(new_signals, key=TelegramClient.delivery_key)
         sent, send_failures = telegram.send_signals(ordered)
 
         if sent > 0:
@@ -159,7 +158,8 @@ def main() -> int:
             "sent": sent,
             "send_failures": send_failures,
         }
-        write_heartbeat(heartbeat_path, status="ok", details=summary)
+        if not args.dry_run:
+            write_heartbeat(heartbeat_path, status="ok", details=summary)
 
         if config.telegram.send_heartbeat:
             telegram.send(
@@ -175,7 +175,8 @@ def main() -> int:
         return 0
 
     except Exception as exc:
-        write_heartbeat(heartbeat_path, status="error", details={"error": str(exc)})
+        if not args.dry_run:
+            write_heartbeat(heartbeat_path, status="error", details={"error": str(exc)})
         print(f"fatal: {type(exc).__name__}: {exc}", file=sys.stderr)
         if not args.dry_run:
             telegram.send(f"\U0000274C Crypto scanner falhou\n{type(exc).__name__}: {exc}")

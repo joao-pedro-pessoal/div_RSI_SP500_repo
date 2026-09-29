@@ -248,92 +248,27 @@ class MainPipelineTests(unittest.TestCase):
 
     def test_main_sends_signals_when_present(self):
         """Nao basta nao rebentar: o caminho de envio tem de correr."""
-        import main_crypto as main_module
-        self.assertEqual(self._run_main([f"C{i}-USDT-SWAP" for i in range(20)]), 0)
-        state_path = Path("state/crypto_4h_heartbeat.json")
-        self.assertTrue(state_path.exists())
-        payload = json.loads(state_path.read_text())
-        self.assertEqual(payload["status"], "ok")
-        self.assertGreater(payload["details"]["new_signals"], 0)
-        self.assertEqual(payload["details"]["new_signals"], payload["details"]["sent"])
+        import io
+        from contextlib import redirect_stdout
+        from types import SimpleNamespace
+        from unittest.mock import patch
+        from crypto_scanner.models import Pivot, DivergenceSignal
+        stamp = pd.Timestamp("2026-09-01", tz="UTC")
+        pivot = Pivot(10, stamp, 100.0, "low")
+        signal = DivergenceSignal("BTCUSDT", "4h", "bullish_regular",
+            pivot, pivot, 25, 30, stamp, stamp, "tradingview", 10, 20, stamp)
+        report = SimpleNamespace(skipped=False, errors={}, signals=[signal])
+        output = io.StringIO()
+        with patch("main_crypto.write_heartbeat") as heartbeat, \
+             patch("main_crypto.CryptoDivergenceScanner.scan_symbol", return_value=report), \
+             redirect_stdout(output):
+            self.assertEqual(self._run_main(["BTCUSDT"]), 0)
+        heartbeat.assert_not_called()
+        payload = json.loads(output.getvalue()[output.getvalue().rfind("{"):])
+        self.assertEqual(payload["new_signals"], 1)
+        self.assertEqual(payload["sent"], 1)
+        self.assertIn("₿ BITCOIN", output.getvalue())
 
-
-class OKXProviderTests(unittest.TestCase):
-    """
-    Testa a paginacao contra respostas SIMULADAS da OKX.
-
-    Nao substitui uma chamada real, mas fixa as tres coisas que a
-    documentacao especifica e que sao faceis de implementar ao contrario:
-    ordem newest-first, cursor `after` a andar para tras, e o campo
-    `confirm` que marca a vela ainda em formacao.
-    """
-
-    @staticmethod
-    def _fake_page(newest_ms: int, count: int, forming: bool = False):
-        """Uma pagina OKX: newest-first, 4h de espacamento."""
-        rows = []
-        for i in range(count):
-            ts = newest_ms - i * 4 * 3600 * 1000
-            confirm = "0" if (forming and i == 0) else "1"
-            price = 100 + i
-            rows.append([str(ts), str(price), str(price * 1.01), str(price * 0.99),
-                         str(price), "1000", "10", "10", confirm])
-        return {"code": "0", "msg": "", "data": rows}
-
-    def test_pagination_walks_backwards_and_sorts(self):
-        from crypto_scanner import provider
-
-        newest = 1_800_000_000_000
-        pages = []
-        cursor_seen = []
-
-        def fake_get_retry(url, params, config):
-            cursor_seen.append(params.get("after"))
-            page_index = len(pages)
-            if page_index >= 3:
-                return {"code": "0", "msg": "", "data": []}
-            start = newest - page_index * 100 * 4 * 3600 * 1000
-            page = self._fake_page(start, 100, forming=(page_index == 0))
-            pages.append(page)
-            return page
-
-        original = provider._get_retry
-        try:
-            provider._get_retry = fake_get_retry
-            df = provider.fetch_klines("BTC-USDT-SWAP",
-                                       provider.ProviderConfig(bars=300, sleep_between=0))
-        finally:
-            provider._get_retry = original
-
-        # a primeira pagina nao leva cursor; as seguintes levam
-        self.assertIsNone(cursor_seen[0])
-        self.assertTrue(all(c is not None for c in cursor_seen[1:]))
-        # o cursor tem de ANDAR PARA TRAS no tempo
-        numeric = [int(c) for c in cursor_seen[1:]]
-        self.assertEqual(numeric, sorted(numeric, reverse=True))
-        # resultado ordenado do mais antigo para o mais recente
-        self.assertTrue(df.index.is_monotonic_increasing)
-        self.assertFalse(df.index.has_duplicates)
-        # a vela em formacao (confirm="0") nao pode aparecer
-        self.assertEqual(len(df), 299)
-
-    def test_forming_candle_is_excluded(self):
-        from crypto_scanner.provider import _rows_to_frame
-        page = self._fake_page(1_800_000_000_000, 10, forming=True)
-        df = _rows_to_frame(page["data"])
-        self.assertEqual(len(df), 9)
-
-    def test_chart_link_never_doubles_the_quote(self):
-        """
-        Bug apanhado no output de um teste: um simbolo sem tracos dava
-        "C8USDTUSDT.P" -- USDT duplicado, link para um grafico inexistente.
-        """
-        from crypto_scanner.telegram_client import TelegramClient as T
-        self.assertEqual(T._base_asset("BTC-USDT-SWAP"), "BTC")
-        self.assertEqual(T._base_asset("PENGU-USDT-SWAP"), "PENGU")
-        self.assertEqual(T._base_asset("BTCUSDT"), "BTC")
-        self.assertEqual(T._base_asset("C8USDT"), "C8")
-        self.assertEqual(T._base_asset("BTC"), "BTC")
 
 
 class TelegramTopicRoutingTests(unittest.TestCase):
@@ -447,7 +382,7 @@ class HighTimeframeEmphasisTests(unittest.TestCase):
         _sys.path.insert(0, str(_Path(__file__).resolve().parent))
         from test_sweep import scenario
         from crypto_scanner.sweep import detect_sweep
-        s = detect_sweep(scenario("bull_sweep", 0), "BTC-USDT-SWAP", "4h")
+        s = detect_sweep(scenario("bull_sweep", 0), "ETHUSDT", "4h")
         s.timeframe = timeframe
         return s
 

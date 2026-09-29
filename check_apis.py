@@ -26,29 +26,29 @@ def main() -> int:
     df = None
 
     # ---------------------------------------------------------------
-    secao("1/4  OKX: lista de swaps perpetuos")
+    secao("1/4  Bybit: lista de swaps perpetuos")
     try:
         from crypto_scanner.provider import fetch_perpetual_symbols
         t0 = time.time()
         perps = fetch_perpetual_symbols()
         print(f"  OK  {len(perps)} swaps perpetuos USDT em {time.time() - t0:.1f}s")
-        for s in ("BTC-USDT-SWAP", "ETH-USDT-SWAP", "SOL-USDT-SWAP"):
+        for s in ("BTCUSDT", "ETHUSDT", "SOLUSDT"):
             marca = "OK " if s in perps else "??? "
             print(f"  {marca} {s}")
         if len(perps) < 100:
-            print("  AVISO: poucos simbolos. O filtro ctType/settleCcy pode estar errado.")
+            print("  AVISO: poucos simbolos. O filtro contractType/settleCoin pode estar errado.")
             falhas += 1
     except Exception as exc:
         print(f"  FALHOU: {type(exc).__name__}: {exc}")
-        print("  -> problema na OKX ou no filtro de instrumentos")
+        print("  -> problema na Bybit ou no filtro de instrumentos")
         falhas += 1
 
     # ---------------------------------------------------------------
-    secao("2/4  OKX: velas de 4h (o teste mais importante)")
+    secao("2/4  Bybit: velas de 4h (o teste mais importante)")
     try:
         from crypto_scanner.provider import fetch_klines, ProviderConfig
         t0 = time.time()
-        df = fetch_klines("BTC-USDT-SWAP", ProviderConfig(bars=EXPECTED_BARS))
+        df = fetch_klines("BTCUSDT", ProviderConfig(bars=EXPECTED_BARS))
         dt = time.time() - t0
         print(f"  {len(df)} barras em {dt:.1f}s")
         if df.empty:
@@ -62,7 +62,7 @@ def main() -> int:
             ordenado = df.index.is_monotonic_increasing
             print(f"  ordem cronologica crescente: {ordenado}")
             if not ordenado:
-                print("  FALHOU: a OKX devolve newest-first; a inversao nao funcionou")
+                print("  FALHOU: a Bybit devolve newest-first; a inversao nao funcionou")
                 falhas += 1
 
             # espacamento de 4h sem buracos: valida a paginacao
