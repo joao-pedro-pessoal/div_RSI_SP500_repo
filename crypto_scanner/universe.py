@@ -67,7 +67,8 @@ class Coin:
     symbol: str           # e.g. "BTC"
     name: str
     market_cap: float
-    exchange_symbol: str  # e.g. "BTCUSDT"
+    exchange_symbol: str  # e.g. "BTC-USDT-SWAP"
+    market_cap_rank: int | None = None  # global CoinGecko rank, before filtering
 
 
 def _get_json(url: str, params: dict | None = None, timeout: int = 30) -> dict | list:
@@ -264,6 +265,9 @@ def build_universe(
             name=name,
             market_cap=float(row.get("market_cap") or 0.0),
             exchange_symbol=exchange_symbol,
+            market_cap_rank=(row["market_cap_rank"]
+                if type(row.get("market_cap_rank")) is int and row["market_cap_rank"] > 0
+                else None),
         ))
 
     print(f"[universe] {len(coins)} coins | dropped: "

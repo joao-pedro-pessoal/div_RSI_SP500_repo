@@ -37,6 +37,7 @@ class TelegramClient:
         # Vazia por omissao, portanto nao muda nada em quem nao a define.
         self.prefix = os.getenv("ALERT_PREFIX", "").strip()
         self.dry_run = dry_run
+        self.market_cap_ranks: dict[str, int] = {}
         if not self.dry_run and (not self.token or not self.chat_id):
             raise RuntimeError("TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID are required")
 
@@ -184,6 +185,59 @@ class TelegramClient:
                 return base[: -len(quote)]
         return base
 
+    def set_market_cap_ranks(self, ranks: dict[str, int | None]) -> None:
+        """Use global ranks supplied by the scan, without additional API calls."""
+        self.market_cap_ranks = {
+            symbol.upper(): rank for symbol, rank in ranks.items()
+            if type(rank) is int and rank > 0
+        }
+
+    @staticmethod
+    def _signal_symbol(signal) -> str:
+        return getattr(signal, "ticker", None) or signal.symbol
+
+    def _tier(self, symbol: str) -> int:
+        if self._base_asset(symbol) == "BTC":
+            return 0
+        rank = self.market_cap_ranks.get(symbol.upper())
+        if rank is not None and rank <= 10:
+            return 1
+        if rank is not None and rank <= 50:
+            return 2
+        return 3
+
+    def _rank_label(self, symbol: str) -> str:
+        tier = self._tier(symbol)
+        rank = self.market_cap_ranks.get(symbol.upper())
+        suffix = f" · #{rank} por capitalização" if rank is not None else ""
+        if tier == 0:
+            return "🟠 ₿ BITCOIN — BTC" + suffix
+        if tier == 1:
+            return "🥇 TOP 10" + suffix
+        if tier == 2:
+            return "🔷 TOP 50" + suffix
+        return ""
+
+    def _asset_banner(self, symbol: str) -> str:
+        label = self._rank_label(symbol)
+        return f"<b>{label}</b>\n\n" if label else ""
+
+    def delivery_key(self, signal):
+        symbol = self._signal_symbol(signal)
+        return (self._tier(symbol), not self._is_high_tf(signal.timeframe),
+                self.market_cap_ranks.get(symbol.upper(), float("inf")),
+                signal.timeframe, symbol, signal.kind)
+
+    def _individual(self, signal) -> bool:
+        return self._tier(self._signal_symbol(signal)) <= 1 or self._is_high_tf(signal.timeframe)
+
+    @classmethod
+    def _chart_symbol(cls, symbol: str) -> str:
+        # Navigation only. Indicators/prices still use OKX candles.
+        return urllib.parse.quote(f"BYBIT:{cls._base_asset(symbol)}USDT.P")
+
+    SOURCE_NOTE = "Dados: OKX · Gráfico: Bybit"
+
     @staticmethod
     def _fmt_price(value: float) -> str:
         """
@@ -212,7 +266,7 @@ class TelegramClient:
         high_tf = self._is_high_tf(signal.timeframe)
 
         base = self._esc(self._base_asset(signal.ticker))
-        chart_symbol = urllib.parse.quote(f"OKX:{self._base_asset(signal.ticker)}USDT.P")
+        chart_symbol = self._chart_symbol(signal.ticker)
 
         def stamp(ts) -> str:
             return ts.strftime("%Y-%m-%d %H:%M") if signal.timeframe == "4h" else str(ts.date())
@@ -221,6 +275,7 @@ class TelegramClient:
         pair = f"<b>{base} \u2014 {signal.timeframe}</b>" if high_tf else f"{base} \u2014 {signal.timeframe}"
 
         text = (
+            f"{self._asset_banner(signal.ticker)}"
             f"{self._banner(signal.timeframe, bullish)}"
             f"{head}\n"
             f"{pair} \u2014 perp\n\n"
@@ -233,6 +288,7 @@ class TelegramClient:
             f"Dist\u00e2ncia: {signal.distance_bars} candles\n"
             f"Confirmado: {stamp(signal.confirmation_time)} "
             f"({self._candle_age(signal.confirmation_time, signal.timeframe)})\n"
+            f"{self.SOURCE_NOTE}\n"
             f"\U0001F4CA https://www.tradingview.com/chart/?symbol={chart_symbol}"
         )
         return self.send(text)
@@ -243,7 +299,7 @@ class TelegramClient:
         icon = "\U0001F7E2" if up else "\U0001F534"
         seta = "\u2191" if up else "\u2193"
         base = self._esc(self._base_asset(signal.ticker))
-        chart = urllib.parse.quote(f"OKX:{self._base_asset(signal.ticker)}USDT.P")
+        chart = self._chart_symbol(signal.ticker)
         high_tf = self._is_high_tf(signal.timeframe)
 
         # Um rompimento em compressao tem DUAS estruturas a concordar; um
@@ -268,6 +324,7 @@ class TelegramClient:
             f"{contexto}\n"
             f"Vela: {signal.bar_time.strftime('%Y-%m-%d %H:%M')} "
             f"({self._candle_age(signal.bar_time, signal.timeframe)})\n"
+            f"{self.SOURCE_NOTE}\n"
             f"\U0001F4CA https://www.tradingview.com/chart/?symbol={chart}"
         )
         return self.send(text)
@@ -297,7 +354,7 @@ class TelegramClient:
         high_tf = self._is_high_tf(sweep.timeframe)
 
         base = self._esc(self._base_asset(sweep.symbol))
-        chart_symbol = urllib.parse.quote(f"OKX:{self._base_asset(sweep.symbol)}USDT.P")
+        chart_symbol = self._chart_symbol(sweep.symbol)
 
         def stamp(ts) -> str:
             return ts.strftime("%Y-%m-%d %H:%M") if sweep.timeframe in ("1h", "4h") else str(ts.date())
@@ -310,6 +367,7 @@ class TelegramClient:
         pair = f"<b>{base} \u2014 {sweep.timeframe}</b>" if high_tf else f"{base} \u2014 {sweep.timeframe}"
 
         text = (
+            f"{self._asset_banner(sweep.symbol)}"
             f"{self._banner(sweep.timeframe, bullish)}"
             f"{head}\n"
             f"{pair} \u2014 perp\n\n"
@@ -321,6 +379,7 @@ class TelegramClient:
             f"Tend\u00eancia: {sweep.n_pivots} pivots, {sweep.trend_atr:.2f} ATR\n"
             f"{origem}\n\n"
             f"Vela: {stamp(sweep.sweep_time)} ({self._candle_age(sweep.sweep_time, sweep.timeframe)})\n"
+            f"{self.SOURCE_NOTE}\n"
             f"\U0001F4CA https://www.tradingview.com/chart/?symbol={chart_symbol}"
         )
         return self.send(text)
@@ -340,7 +399,7 @@ class TelegramClient:
     #   deixa de existir em vez de ser mitigado.
     #
     # O QUE NAO E AGRUPADO
-    #   Os timeframes altos (1D/3D/1W). Sao raros e o objetivo e que se
+    #   BTC, top 10 e timeframes altos (1D/3D/1W). O objetivo e que se
     #   destaquem -- meter um sinal de 1W no meio de uma lista de dez
     #   anularia o destaque que acabamos de acrescentar.
 
@@ -351,26 +410,33 @@ class TelegramClient:
         if not sweeps:
             return 0, 0
 
-        individuais = [s for s in sweeps if self._is_high_tf(s.timeframe)]
-        agrupaveis = [s for s in sweeps if not self._is_high_tf(s.timeframe)]
+        return self._send_prioritized(sweeps, self.send_sweep, self._send_sweep_digest)
 
-        enviados = 0
-        falhados = 0
+    def _send_prioritized(self, signals, send_one, send_digest):
+        """Keep tiers separate; stop on failure so the sent prefix is exact.
 
-        for sweep in individuais:
-            if self.send_sweep(sweep):
-                enviados += 1
+        Callers must use delivery_key when persisting ordered[:sent].
+        """
+        ordered = sorted(signals, key=self.delivery_key)
+        sent = 0
+        while sent < len(ordered):
+            signal = ordered[sent]
+            if self._individual(signal):
+                count = 1
+                ok = send_one(signal)
             else:
-                falhados += 1
-
-        for start in range(0, len(agrupaveis), self.BATCH_SIZE):
-            grupo = agrupaveis[start:start + self.BATCH_SIZE]
-            if self._send_sweep_digest(grupo):
-                enviados += len(grupo)
-            else:
-                falhados += len(grupo)
-
-        return enviados, falhados
+                tier = self._tier(self._signal_symbol(signal))
+                batch = []
+                for candidate in ordered[sent:sent + self.BATCH_SIZE]:
+                    if self._individual(candidate) or self._tier(self._signal_symbol(candidate)) != tier:
+                        break
+                    batch.append(candidate)
+                count = len(batch)
+                ok = send_digest(batch)
+            if not ok:
+                return sent, len(ordered) - sent
+            sent += count
+        return sent, 0
 
     def _send_sweep_digest(self, sweeps: list) -> bool:
         timeframes = sorted({s.timeframe for s in sweeps})
@@ -379,17 +445,18 @@ class TelegramClient:
                   f"{'s' if len(sweeps) > 1 else ''}</b> \u2014 {', '.join(timeframes)}"
                   f"{' · ' + idade if idade else ''}")
 
-        linhas = [header, ""]
+        linhas = [header, self.SOURCE_NOTE, ""]
         for sweep in sweeps:
             bullish = sweep.kind == "bullish_sweep"
             icon = "\U0001F7E2" if bullish else "\U0001F534"
             base = self._esc(self._base_asset(sweep.symbol))
             quando = (sweep.sweep_time.strftime("%d/%m %H:%M")
                       if sweep.timeframe in ("1h", "4h") else str(sweep.sweep_time.date()))
-            chart = urllib.parse.quote(f"OKX:{self._base_asset(sweep.symbol)}USDT.P")
+            chart = self._chart_symbol(sweep.symbol)
             linhas.append(
                 f'{icon} <a href="https://www.tradingview.com/chart/?symbol={chart}">'
                 f"<b>{base}</b></a> {sweep.timeframe}  "
+                f"{self._rank_label(sweep.symbol)}  "
                 f"{sweep.depth_atr:.2f} ATR · pavio {sweep.wick_fraction * 100:.0f}% · {quando}"
             )
         return self.send("\n".join(linhas))
@@ -399,26 +466,7 @@ class TelegramClient:
         if not signals:
             return 0, 0
 
-        individuais = [s for s in signals if self._is_high_tf(s.timeframe)]
-        agrupaveis = [s for s in signals if not self._is_high_tf(s.timeframe)]
-
-        enviados = 0
-        falhados = 0
-
-        for signal in individuais:
-            if self.send_signal(signal):
-                enviados += 1
-            else:
-                falhados += 1
-
-        for start in range(0, len(agrupaveis), self.BATCH_SIZE):
-            grupo = agrupaveis[start:start + self.BATCH_SIZE]
-            if self._send_signal_digest(grupo):
-                enviados += len(grupo)
-            else:
-                falhados += len(grupo)
-
-        return enviados, falhados
+        return self._send_prioritized(signals, self.send_signal, self._send_signal_digest)
 
     def _send_signal_digest(self, signals: list) -> bool:
         timeframes = sorted({s.timeframe for s in signals})
@@ -427,17 +475,18 @@ class TelegramClient:
                   f"{'s' if len(signals) > 1 else ''}</b> \u2014 {', '.join(timeframes)}"
                   f"{' · ' + idade if idade else ''}")
 
-        linhas = [header, ""]
+        linhas = [header, self.SOURCE_NOTE, ""]
         for signal in signals:
             bullish = signal.kind == "bullish_regular"
             icon = "\U0001F7E2" if bullish else "\U0001F534"
             base = self._esc(self._base_asset(signal.ticker))
             quando = (signal.confirmation_time.strftime("%d/%m %H:%M")
                       if signal.timeframe == "4h" else str(signal.confirmation_time.date()))
-            chart = urllib.parse.quote(f"OKX:{self._base_asset(signal.ticker)}USDT.P")
+            chart = self._chart_symbol(signal.ticker)
             linhas.append(
                 f'{icon} <a href="https://www.tradingview.com/chart/?symbol={chart}">'
                 f"<b>{base}</b></a> {signal.timeframe}  "
+                f"{self._rank_label(signal.ticker)}  "
                 f"RSI {signal.first_rsi:.0f}\u2192{signal.second_rsi:.0f} · {quando}"
             )
         return self.send("\n".join(linhas))

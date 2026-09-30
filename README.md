@@ -1,3 +1,5 @@
+> **Alertas de cripto:** dados OKX, links TradingView da Bybit e destaques BTC/top 10/top 50. Ver [guia de atualização](deploy/ALERTAS_RANKING.md).
+
 # S&P 500 Trading Scanners
 
 Infraestrutura para **5 scanners de trading**, com o Bot #1 implementado: divergências regulares entre preço e RSI nas ações do S&P 500.

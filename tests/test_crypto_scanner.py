@@ -248,14 +248,23 @@ class MainPipelineTests(unittest.TestCase):
 
     def test_main_sends_signals_when_present(self):
         """Nao basta nao rebentar: o caminho de envio tem de correr."""
-        import main_crypto as main_module
-        self.assertEqual(self._run_main([f"C{i}-USDT-SWAP" for i in range(20)]), 0)
-        state_path = Path("state/crypto_4h_heartbeat.json")
-        self.assertTrue(state_path.exists())
-        payload = json.loads(state_path.read_text())
-        self.assertEqual(payload["status"], "ok")
-        self.assertGreater(payload["details"]["new_signals"], 0)
-        self.assertEqual(payload["details"]["new_signals"], payload["details"]["sent"])
+        import io
+        from contextlib import redirect_stdout
+        from types import SimpleNamespace
+        from unittest.mock import patch
+        from tests.test_rank_alerts import divergence
+        signal = divergence("BTC-USDT-SWAP")
+        report = SimpleNamespace(skipped=False, errors={}, signals=[signal])
+        output = io.StringIO()
+        with patch("main_crypto.write_heartbeat") as heartbeat, \
+             patch("main_crypto.CryptoDivergenceScanner.scan_symbol", return_value=report), \
+             redirect_stdout(output):
+            self.assertEqual(self._run_main(["BTC-USDT-SWAP"]), 0)
+        heartbeat.assert_not_called()
+        payload = json.loads(output.getvalue()[output.getvalue().rfind("{"):])
+        self.assertEqual(payload["new_signals"], 1)
+        self.assertEqual(payload["sent"], 1)
+
 
 
 class OKXProviderTests(unittest.TestCase):
@@ -447,7 +456,7 @@ class HighTimeframeEmphasisTests(unittest.TestCase):
         _sys.path.insert(0, str(_Path(__file__).resolve().parent))
         from test_sweep import scenario
         from crypto_scanner.sweep import detect_sweep
-        s = detect_sweep(scenario("bull_sweep", 0), "BTC-USDT-SWAP", "4h")
+        s = detect_sweep(scenario("bull_sweep", 0), "OTHER-USDT-SWAP", "4h")
         s.timeframe = timeframe
         return s
 

@@ -108,7 +108,7 @@ def main() -> int:
 
     telegram_cfg = cfg.get("telegram", {})
 
-    if already_ran_recently(Path(heartbeat_file), args.skip_if_recent):
+    if not args.dry_run and already_ran_recently(Path(heartbeat_file), args.skip_if_recent):
         return 0
 
     try:
@@ -123,6 +123,7 @@ def main() -> int:
                 snapshot_dir=None,     # o bot de divergencias ja guarda o ranking
             )
             symbols = [c.exchange_symbol for c in coins]
+            telegram.set_market_cap_ranks({c.exchange_symbol: c.market_cap_rank for c in coins})
 
         # Aviso de inicio. Desligavel por configuracao: o workflow de 1h
         # corre 24x/dia, e 24 mensagens de "a comecar" mais 24 de "concluido"
@@ -183,7 +184,7 @@ def main() -> int:
         # demoraram ~53 min por causa dos 429 do Telegram, e o job era morto
         # pelo timeout antes de acabar. Dez sinais por mensagem reduzem 73
         # envios a 8.
-        ordered = sorted(new_signals, key=lambda s: (s.timeframe, s.symbol, s.kind))
+        ordered = sorted(new_signals, key=telegram.delivery_key)
         sent, send_failures = telegram.send_sweeps(ordered)
 
         # So se marca como enviado o que saiu. Se o envio falhou, o sinal
@@ -205,7 +206,8 @@ def main() -> int:
             "sent": sent,
             "send_failures": send_failures,
         }
-        write_heartbeat(Path(heartbeat_file), status="ok", details=summary)
+        if not args.dry_run:
+            write_heartbeat(Path(heartbeat_file), status="ok", details=summary)
 
         if telegram_cfg.get("send_heartbeat", True):
             telegram.send(
@@ -225,7 +227,8 @@ def main() -> int:
         return 0
 
     except Exception as exc:
-        write_heartbeat(Path(heartbeat_file), status="error", details={"error": str(exc)})
+        if not args.dry_run:
+            write_heartbeat(Path(heartbeat_file), status="error", details={"error": str(exc)})
         print(f"fatal: {type(exc).__name__}: {exc}", file=sys.stderr)
         if not args.dry_run:
             telegram.send(f"\U0000274C Sweep scanner falhou\n{type(exc).__name__}: {exc}")
