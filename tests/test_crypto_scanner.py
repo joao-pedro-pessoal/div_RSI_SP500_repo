@@ -491,14 +491,14 @@ class HighTimeframeEmphasisTests(unittest.TestCase):
         for tf in ("1D", "3D", "1W"):
             fields = self._text(self._sweep(tf))
             text = fields["text"][0]
-            self.assertIn("TIMEFRAME ALTO", text, tf)
+            self.assertIn("HIGH TIMEFRAME", text, tf)
             self.assertIn("<b>", text, tf)
             self.assertEqual(fields["parse_mode"], ["HTML"], tf)
 
     def test_low_timeframes_stay_compact(self):
         for tf in ("1h", "4h"):
             text = self._text(self._sweep(tf))["text"][0]
-            self.assertNotIn("TIMEFRAME ALTO", text, tf)
+            self.assertNotIn("HIGH TIMEFRAME", text, tf)
             self.assertNotIn("<b>", text, tf)
 
     def test_html_tags_are_balanced(self):

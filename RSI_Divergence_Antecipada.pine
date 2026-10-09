@@ -1,0 +1,238 @@
+//@version=6
+indicator("RSI Divergence + Hidden + Antecipada", shorttitle = "RSI Div+", format = format.price, precision = 2, max_lines_count = 500, max_labels_count = 500)
+
+// =====================================================================
+//  Regular Bullish : preco Lower Low   + RSI Higher Low
+//  Regular Bearish : preco Higher High + RSI Lower High
+//  Hidden Bullish  : preco Higher Low  + RSI Lower Low
+//  Hidden Bearish  : preco Lower High  + RSI Higher High
+//
+//  Confirmada  (linha cheia / pontilhada) = igual ao indicador original:
+//              so aparece depois de "Pivot Lookback Right" velas.
+//  Antecipada  (linha tracejada + ⏳) = aparece LOGO no fecho da vela que
+//              faz o novo low/high do RSI. Pode ainda mudar: se o movimento
+//              continuar, a linha estica-se ate ao novo ponto.
+// =====================================================================
+
+// ---------- inputs
+grpR = "RSI"
+len = input.int(14, "RSI Period", minval = 1, group = grpR)
+src = input.source(close, "RSI Source", group = grpR)
+
+grpP = "Pivots"
+lbL        = input.int(5, "Pivot Lookback Left", minval = 1, group = grpP)
+lbR        = input.int(5, "Pivot Lookback Right", minval = 1, group = grpP)
+rangeLower = input.int(5, "Min of Lookback Range", minval = 0, group = grpP)
+rangeUpper = input.int(60, "Max of Lookback Range", minval = 1, group = grpP)
+
+grpT = "Tipos de divergencia"
+plotBull       = input.bool(true,  "Regular Bullish (preco LL + RSI HL)", group = grpT)
+plotBear       = input.bool(true,  "Regular Bearish (preco HH + RSI LH)", group = grpT)
+plotHiddenBull = input.bool(true,  "Hidden Bullish (preco HL + RSI LL)",  group = grpT)
+plotHiddenBear = input.bool(true,  "Hidden Bearish (preco LH + RSI HH)",  group = grpT)
+
+grpE = "Mostrar logo"
+showConfirmed = input.bool(false, "Mostrar tambem confirmadas (espera Lookback Right)", group = grpE)
+showEarly     = input.bool(true, "Mostrar logo (antecipada)", group = grpE)
+earlyBars     = input.int(0, "Velas a direita na antecipada", minval = 0, group = grpE, tooltip = "0 = no fecho da vela que faz o novo low/high do RSI. Tem de ser menor que Pivot Lookback Right.")
+drawOnPrice   = input.bool(true, "Desenhar tambem no grafico de preco", group = grpE)
+dcaAlerts     = input.bool(true, "Alertar em CADA vela que prolonga a divergencia (DCA)", group = grpE, tooltip = "Ligado: novo alerta sempre que o preco faz novo low/high e a divergencia se mantem. Desligado: so o primeiro alerta de cada perna.")
+
+bullColor  = color.new(color.green, 0)
+bearColor  = color.new(color.red, 0)
+hBullColor = color.new(color.green, 45)
+hBearColor = color.new(color.red, 45)
+
+eb = math.min(earlyBars, lbR - 1)
+
+// ---------- RSI
+osc = ta.rsi(src, len)
+plot(osc, "RSI", color = #7E57C2, linewidth = 2)
+hUp = hline(70, "Upper", color = #787B86)
+hline(50, "Middle", color = color.new(#787B86, 50), linestyle = hline.style_dotted)
+hDn = hline(30, "Lower", color = #787B86)
+fill(hUp, hDn, color = color.rgb(126, 87, 194, 90), title = "Background")
+
+// ---------- helpers
+type Div
+    int   prevBar = na
+    line  lRsi    = na
+    line  lPrice  = na
+    label lab     = na
+
+inRange(int prevBar, int candBar) =>
+    d = candBar - prevBar - 1          // igual a barssince(plFound[1]) do Pine original
+    d >= rangeLower and d <= rangeUpper
+
+newDiv(int x1, float o1, float p1, int x2, float o2, float p2, color c, string st, string txt, bool isLow) =>
+    Div d = Div.new()
+    d.prevBar := x1
+    d.lRsi := line.new(x1, o1, x2, o2, color = c, width = 2, style = st)
+    if drawOnPrice
+        d.lPrice := line.new(x1, p1, x2, p2, color = c, width = 2, style = st, force_overlay = true)
+    d.lab := label.new(x2, o2, txt, style = isLow ? label.style_label_up : label.style_label_down, color = c, textcolor = color.white, size = size.tiny)
+    d
+
+moveDiv(Div d, int x2, float o2, float p2) =>
+    d.lRsi.set_xy2(x2, o2)
+    if not na(d.lPrice)
+        d.lPrice.set_xy2(x2, p2)
+    d.lab.set_xy(x2, o2)
+
+// ---------- pivots confirmados do RSI (guardados para servir de 1o ponto)
+var array<int>   lowBar    = array.new<int>()
+var array<float> lowOsc    = array.new<float>()
+var array<float> lowPrice  = array.new<float>()
+var array<int>   highBar   = array.new<int>()
+var array<float> highOsc   = array.new<float>()
+var array<float> highPrice = array.new<float>()
+
+pl = ta.pivotlow(osc, lbL, lbR)
+ph = ta.pivothigh(osc, lbL, lbR)
+
+// ---------- CONFIRMADAS (logica do indicador original)
+bool bullConf  = false
+bool hBullConf = false
+bool bearConf  = false
+bool hBearConf = false
+
+if not na(pl) and lowBar.size() > 0
+    pb = lowBar.last()
+    po = lowOsc.last()
+    pp = lowPrice.last()
+    cb = bar_index - lbR
+    if inRange(pb, cb)
+        bullConf  := plotBull       and low[lbR] < pp and osc[lbR] > po
+        hBullConf := plotHiddenBull and low[lbR] > pp and osc[lbR] < po
+        if showConfirmed and bullConf
+            newDiv(pb, po, pp, cb, osc[lbR], low[lbR], bullColor, line.style_solid, " Bull ", true)
+        if showConfirmed and hBullConf
+            newDiv(pb, po, pp, cb, osc[lbR], low[lbR], hBullColor, line.style_dotted, " H Bull ", true)
+
+if not na(ph) and highBar.size() > 0
+    pb = highBar.last()
+    po = highOsc.last()
+    pp = highPrice.last()
+    cb = bar_index - lbR
+    if inRange(pb, cb)
+        bearConf  := plotBear       and high[lbR] > pp and osc[lbR] < po
+        hBearConf := plotHiddenBear and high[lbR] < pp and osc[lbR] > po
+        if showConfirmed and bearConf
+            newDiv(pb, po, pp, cb, osc[lbR], high[lbR], bearColor, line.style_solid, " Bear ", false)
+        if showConfirmed and hBearConf
+            newDiv(pb, po, pp, cb, osc[lbR], high[lbR], hBearColor, line.style_dotted, " H Bear ", false)
+
+if not na(pl)
+    lowBar.push(bar_index - lbR)
+    lowOsc.push(osc[lbR])
+    lowPrice.push(low[lbR])
+    if lowBar.size() > 50
+        lowBar.shift()
+        lowOsc.shift()
+        lowPrice.shift()
+
+if not na(ph)
+    highBar.push(bar_index - lbR)
+    highOsc.push(osc[lbR])
+    highPrice.push(high[lbR])
+    if highBar.size() > 50
+        highBar.shift()
+        highOsc.shift()
+        highPrice.shift()
+
+// ---------- ANTECIPADAS (logo, sem esperar as lbR velas)
+// Candidato = vela "eb" velas atras cujo RSI e o mais baixo/alto das ultimas lbL velas.
+// O 1o ponto e sempre o ultimo pivot JA confirmado -> nada usa o futuro.
+lowestE  = ta.lowest(osc, lbL + eb + 1)
+highestE = ta.highest(osc, lbL + eb + 1)
+
+var Div eBull  = na
+var Div eHBull = na
+var Div eBear  = na
+var Div eHBear = na
+
+bool bullEarly  = false
+bool hBullEarly = false
+bool bearEarly  = false
+bool hBearEarly = false
+bool bullEarlyNew  = false
+bool hBullEarlyNew = false
+bool bearEarlyNew  = false
+bool hBearEarlyNew = false
+
+if showEarly and eb < lbR and osc[eb] == lowestE and lowBar.size() > 0
+    pb = lowBar.last()
+    po = lowOsc.last()
+    pp = lowPrice.last()
+    cb = bar_index - eb
+    if inRange(pb, cb)
+        bullEarly  := plotBull       and low[eb] < pp and osc[eb] > po
+        hBullEarly := plotHiddenBull and low[eb] > pp and osc[eb] < po
+        if bullEarly
+            bullEarlyNew := na(eBull) or eBull.prevBar != pb
+            if bullEarlyNew
+                eBull := newDiv(pb, po, pp, cb, osc[eb], low[eb], bullColor, line.style_dashed, " Bull ⏳ ", true)
+            else
+                moveDiv(eBull, cb, osc[eb], low[eb])
+        if hBullEarly
+            hBullEarlyNew := na(eHBull) or eHBull.prevBar != pb
+            if hBullEarlyNew
+                eHBull := newDiv(pb, po, pp, cb, osc[eb], low[eb], hBullColor, line.style_dashed, " H Bull ⏳ ", true)
+            else
+                moveDiv(eHBull, cb, osc[eb], low[eb])
+
+if showEarly and eb < lbR and osc[eb] == highestE and highBar.size() > 0
+    pb = highBar.last()
+    po = highOsc.last()
+    pp = highPrice.last()
+    cb = bar_index - eb
+    if inRange(pb, cb)
+        bearEarly  := plotBear       and high[eb] > pp and osc[eb] < po
+        hBearEarly := plotHiddenBear and high[eb] < pp and osc[eb] > po
+        if bearEarly
+            bearEarlyNew := na(eBear) or eBear.prevBar != pb
+            if bearEarlyNew
+                eBear := newDiv(pb, po, pp, cb, osc[eb], high[eb], bearColor, line.style_dashed, " Bear ⏳ ", false)
+            else
+                moveDiv(eBear, cb, osc[eb], high[eb])
+        if hBearEarly
+            hBearEarlyNew := na(eHBear) or eHBear.prevBar != pb
+            if hBearEarlyNew
+                eHBear := newDiv(pb, po, pp, cb, osc[eb], high[eb], hBearColor, line.style_dashed, " H Bear ⏳ ", false)
+            else
+                moveDiv(eHBear, cb, osc[eb], high[eb])
+
+// ---------- marcas de DCA: um triangulo em cada vela onde a divergencia existe
+plotshape(bullEarly  ? osc[eb] : na, "Bull DCA",   shape.triangleup,   location.absolute, bullColor,  offset = -eb, size = size.tiny)
+plotshape(hBullEarly ? osc[eb] : na, "H Bull DCA", shape.triangleup,   location.absolute, hBullColor, offset = -eb, size = size.tiny)
+plotshape(bearEarly  ? osc[eb] : na, "Bear DCA",   shape.triangledown, location.absolute, bearColor,  offset = -eb, size = size.tiny)
+plotshape(hBearEarly ? osc[eb] : na, "H Bear DCA", shape.triangledown, location.absolute, hBearColor, offset = -eb, size = size.tiny)
+
+// ---------- alertas (criar com "Once Per Bar Close")
+bullA  = dcaAlerts ? bullEarly  : bullEarlyNew
+hBullA = dcaAlerts ? hBullEarly : hBullEarlyNew
+bearA  = dcaAlerts ? bearEarly  : bearEarlyNew
+hBearA = dcaAlerts ? hBearEarly : hBearEarlyNew
+
+// Um so alerta para tudo: criar o alerta com a condicao "Any alert() function call".
+fmsg(string tipo, string regra, float price, float rsiv) =>
+    tipo + " (" + regra + ") " + syminfo.ticker + " " + timeframe.period + " | preco " + str.tostring(price, format.mintick) + " | RSI " + str.tostring(rsiv, "#.##")
+
+if barstate.isconfirmed
+    if bullA
+        alert(fmsg("🟢 Regular Bullish", "preco LL + RSI HL", low[eb], osc[eb]), alert.freq_once_per_bar_close)
+    if hBullA
+        alert(fmsg("🟢 Hidden Bullish", "preco HL + RSI LL", low[eb], osc[eb]), alert.freq_once_per_bar_close)
+    if bearA
+        alert(fmsg("🔴 Regular Bearish", "preco HH + RSI LH", high[eb], osc[eb]), alert.freq_once_per_bar_close)
+    if hBearA
+        alert(fmsg("🔴 Hidden Bearish", "preco LH + RSI HH", high[eb], osc[eb]), alert.freq_once_per_bar_close)
+    if showConfirmed and (bullConf or hBullConf or bearConf or hBearConf)
+        alert("Divergencia CONFIRMADA em " + syminfo.ticker + " " + timeframe.period, alert.freq_once_per_bar_close)
+
+// Alertas individuais, se preferires escolher por tipo
+alertcondition(bullA,  "Regular Bullish (logo)", "Regular Bullish RSI divergence em {{ticker}} {{interval}} preco {{close}}")
+alertcondition(bearA,  "Regular Bearish (logo)", "Regular Bearish RSI divergence em {{ticker}} {{interval}} preco {{close}}")
+alertcondition(hBullA, "Hidden Bullish (logo)",  "Hidden Bullish RSI divergence em {{ticker}} {{interval}} preco {{close}}")
+alertcondition(hBearA, "Hidden Bearish (logo)",  "Hidden Bearish RSI divergence em {{ticker}} {{interval}} preco {{close}}")
+alertcondition(bullA or hBullA or bearA or hBearA, "Qualquer divergencia (logo)", "RSI divergence em {{ticker}} {{interval}} preco {{close}}")

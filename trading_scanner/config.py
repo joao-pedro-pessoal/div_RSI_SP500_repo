@@ -6,6 +6,8 @@ from typing import Any
 
 import yaml
 
+from .models import ALL_SIGNAL_KINDS
+
 
 @dataclass
 class ScannerConfig:
@@ -21,6 +23,24 @@ class ScannerConfig:
     rsi_alignment_mode: str = "price_pivot"
     rsi_pivot_window: int = 2
     alert_age_bars: int = 1
+    # Which divergences to detect (detector_mode: tradingview only):
+    #   bullish_regular: price Lower Low   + RSI Higher Low
+    #   bearish_regular: price Higher High + RSI Lower High
+    #   bullish_hidden:  price Higher Low  + RSI Lower Low
+    #   bearish_hidden:  price Lower High  + RSI Higher High
+    divergence_types: list[str] = field(
+        default_factory=lambda: ["bullish_regular", "bearish_regular"]
+    )
+    # Bars the SECOND pivot needs to its right before alerting. None = same as
+    # pivot_right (exact Pine behaviour). 0 = alert on the close of the bar
+    # that forms the new RSI low/high: earliest possible, but not final.
+    confirm_bars: int | None = None
+    # Only with confirm_bars < pivot_right. True = alert on EVERY candle that
+    # extends the divergence (for DCA); False = only the first one per leg.
+    alert_each_bar: bool = False
+    # Only with confirm_bars < pivot_right: ALSO send a second message when
+    # the divergence is confirmed (pivot_right bars later).
+    send_confirmed: bool = True
     timeframes: list[str] = field(default_factory=lambda: ["1D", "3D", "1W"])
 
 
@@ -91,6 +111,11 @@ def _validate_config(config: AppConfig) -> None:
         raise ValueError("rsi_alignment_mode must be 'price_pivot' or 'rsi_pivot'")
     if s.rsi_pivot_window < 0:
         raise ValueError("rsi_pivot_window must be >= 0")
+    bad_types = set(s.divergence_types) - set(ALL_SIGNAL_KINDS)
+    if bad_types or not s.divergence_types:
+        raise ValueError(f"divergence_types must be a non-empty subset of {list(ALL_SIGNAL_KINDS)}")
+    if s.confirm_bars is not None and not 0 <= s.confirm_bars <= s.pivot_right:
+        raise ValueError("confirm_bars must be between 0 and pivot_right")
     unknown = set(s.timeframes) - {"1D", "3D", "1W"}
     if unknown:
         raise ValueError(f"unsupported timeframes: {sorted(unknown)}")

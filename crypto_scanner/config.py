@@ -20,6 +20,24 @@ class ScannerConfig:
     comparison_mode: str = "consecutive"
     rsi_alignment_mode: str = "price_pivot"
     rsi_pivot_window: int = 2
+    # Which divergences to detect (detector_mode: tradingview only):
+    #   bullish_regular: price Lower Low   + RSI Higher Low
+    #   bearish_regular: price Higher High + RSI Lower High
+    #   bullish_hidden:  price Higher Low  + RSI Lower Low
+    #   bearish_hidden:  price Lower High  + RSI Higher High
+    divergence_types: list[str] = field(
+        default_factory=lambda: ["bullish_regular", "bearish_regular"]
+    )
+    # Bars the SECOND pivot needs to its right before alerting. None = same as
+    # pivot_right (exact Pine behaviour). 0 = alert on the close of the bar
+    # that forms the new RSI low/high: earliest possible, but not final.
+    confirm_bars: int | None = None
+    # Only with confirm_bars < pivot_right. True = alert on EVERY candle that
+    # extends the divergence (for DCA); False = only the first one per leg.
+    alert_each_bar: bool = False
+    # Only with confirm_bars < pivot_right: ALSO send a second message when
+    # the divergence is confirmed (pivot_right bars later).
+    send_confirmed: bool = True
     timeframes: list[str] = field(default_factory=lambda: ["4h", "1D", "3D", "1W"])
 
     # Per-timeframe alert window, in bars of that timeframe.

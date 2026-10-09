@@ -76,6 +76,60 @@ O scanner usa o momento de **confirmação**, não o local retroativo onde o Tra
 
 Referência TradingView sobre confirmação/offset de pivots: https://www.tradingview.com/pine-script-docs/faq/visuals/
 
+## Tipos de divergência e alerta antecipado
+
+Dois parâmetros novos em `scanner:` (valem para ações e cripto, só no `detector_mode: tradingview`):
+
+```yaml
+divergence_types: [bullish_regular, bearish_regular, bullish_hidden, bearish_hidden]
+confirm_bars: 0        # alerta logo, sem esperar confirmacao (omisso = pivot_right, como o Pine)
+alert_each_bar: true   # DCA: alerta em cada vela que prolonga a divergencia
+send_confirmed: true   # quando confirma (pivot_right velas depois) chega OUTRA mensagem
+```
+
+Cada divergencia gera assim duas mensagens (em ingles): `FORMING ⏳ ...` logo na vela, e
+`CONFIRMED ✅ ...` quando o pivot confirma. No resumo agrupado, cada linha leva ⏳ ou ✅.
+
+Os configs de divergencia (`config.yaml`, `config_crypto_*.yaml`) ja vem assim, iguais ao indicador
+`RSI_Divergence_Antecipada.pine`. Para voltar ao comportamento antigo: so os dois tipos regular,
+apagar `confirm_bars` e `alert_each_bar: false`.
+
+| tipo | preço | RSI |
+|---|---|---|
+| `bullish_regular` | Lower Low | Higher Low |
+| `bearish_regular` | Higher High | Lower High |
+| `bullish_hidden` | Higher Low | Lower Low |
+| `bearish_hidden` | Lower High | Higher High |
+
+`confirm_bars` controla quantas velas o **segundo** pivot precisa à direita antes do alerta:
+
+- omisso (= `pivot_right`, 5): exatamente o Pine, alerta 5 velas depois do pivot;
+- `0`: alerta **logo** no fecho da vela que faz o novo low/high do RSI. A mensagem diz
+  `(EM FORMACAO)` / `Detetado (ainda pode mudar)`, porque o movimento pode continuar
+  e a divergência pode desaparecer. Só é enviado **um** alerta por perna
+  (o `signal_id` antecipado ignora o 2.º pivot);
+- o **primeiro** pivot continua a ser sempre um pivot completo e já confirmado nesse momento — não há
+  informação do futuro.
+
+Com os defaults, o detetor produz exatamente os mesmos sinais e os mesmos `signal_id` que antes
+(testado em `tests/test_divergence_types_early.py`), por isso o `state/` existente continua válido.
+
+### Verificar antes de ligar
+
+`verificar_divergencias.py` corre o mesmo detetor no histórico todo de um ativo, imprime uma tabela e
+abre um gráfico HTML (velas + RSI + linhas das divergências) para comparar com o TradingView.
+Não envia nada para o Telegram.
+
+```bash
+python verificar_divergencias.py --demo
+python verificar_divergencias.py --crypto BTC-USDT-SWAP --timeframe 4h --tipos todos --confirm-bars 0
+python verificar_divergencias.py --ticker AAPL --timeframe 1D --tipos regular hidden
+```
+
+Com `--confirm-bars` menor que `pivot_right`, a tabela mostra os sinais antecipados **e** os
+confirmados, e diz quantas velas mais cedo chegou o antecipado — ou se nunca chegou a confirmar.
+Só depois de estares satisfeito é que se muda o `divergence_types` / `confirm_bars` no yaml.
+
 ## Detector alternativo para calibração
 
 O detector anterior continua disponível. Para o ativar:

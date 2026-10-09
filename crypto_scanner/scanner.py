@@ -9,7 +9,7 @@ from .divergence import find_regular_divergences
 from .indicators import wilder_rsi
 from .models import DivergenceSignal
 from .timeframes import build as build_timeframe
-from .tradingview_divergence import find_tradingview_regular_divergences
+from .tradingview_divergence import find_tradingview_divergences
 from .validation import DataIssue, blocking_issues, validate_ohlc
 
 # The reused detector modules expect capitalised OHLC columns; the crypto
@@ -60,13 +60,17 @@ class CryptoDivergenceScanner:
                 rsi = wilder_rsi(frame["Close"], s.rsi_period)
 
                 if s.detector_mode == "tradingview":
-                    signals = find_tradingview_regular_divergences(
+                    signals = find_tradingview_divergences(
                         symbol, timeframe, frame, rsi,
                         left=s.pivot_left, right=s.pivot_right,
                         range_lower=s.min_distance_bars,
                         range_upper=s.max_distance_bars,
                         min_price_change_pct=s.min_price_change_pct,
                         min_rsi_delta=s.min_rsi_delta,
+                        kinds=s.divergence_types,
+                        confirm_bars=s.confirm_bars,
+                        alert_each_bar=s.alert_each_bar,
+                        also_confirmed=s.send_confirmed,
                     )
                 else:
                     signals = find_regular_divergences(

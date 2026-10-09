@@ -85,37 +85,37 @@ class TelegramClient:
                     except Exception:
                         pass
                     wait = min(wait, 90)
-                    print(f"[telegram] 429; a esperar {wait}s (tentativa {attempt + 1}/{self.MAX_RETRIES})")
+                    print(f"[telegram] 429; waiting {wait}s (attempt {attempt + 1}/{self.MAX_RETRIES})")
                     time.sleep(wait + 1)
                     continue
-                print(f"[telegram] HTTP {exc.code}: envio falhou")
+                print(f"[telegram] HTTP {exc.code}: send failed")
                 return False
             except Exception as exc:
                 TelegramClient._last_send_at = time.monotonic()
-                print(f"[telegram] {type(exc).__name__}: envio falhou")
+                print(f"[telegram] {type(exc).__name__}: send failed")
                 return False
-        print("[telegram] desisti apos varias tentativas")
+        print("[telegram] giving up after several attempts")
         return False
 
     def send_signal(self, signal: "DivergenceSignal") -> bool:
-        bullish = signal.kind == "bullish_regular"
+        bullish = signal.bullish
         icon = "🟢" if bullish else "🔴"
-        title = "BULLISH RSI DIVERGENCE" if bullish else "BEARISH RSI DIVERGENCE"
+        title = signal.title
         price_label = "Low" if bullish else "High"
-        price_arrow = "↓" if bullish else "↑"
-        rsi_arrow = "↑" if bullish else "↓"
+        price_arrow = "↑" if signal.second_pivot.value > signal.first_pivot.value else "↓"
+        rsi_arrow = "↑" if signal.second_rsi > signal.first_rsi else "↓"
         chart_symbol = urllib.parse.quote(signal.ticker)
         text = (
             f"{icon} {title}\n"
             f"{signal.ticker} — {signal.timeframe}\n\n"
-            f"{price_label} anterior ({signal.first_pivot.timestamp.date()}): ${signal.first_pivot.value:.2f}\n"
-            f"Novo {price_label.lower()} ({signal.second_pivot.timestamp.date()}): "
+            f"Previous {price_label.lower()} ({signal.first_pivot.timestamp.date()}): ${signal.first_pivot.value:.2f}\n"
+            f"New {price_label.lower()} ({signal.second_pivot.timestamp.date()}): "
             f"${signal.second_pivot.value:.2f} {price_arrow}\n\n"
-            f"RSI anterior: {signal.first_rsi:.2f}\n"
-            f"Novo RSI: {signal.second_rsi:.2f} {rsi_arrow}\n\n"
-            f"Distância: {signal.distance_bars} candles\n"
+            f"Previous RSI: {signal.first_rsi:.2f}\n"
+            f"New RSI: {signal.second_rsi:.2f} {rsi_arrow}\n\n"
+            f"Distance: {signal.distance_bars} candles\n"
             f"RSI alignment: {signal.rsi_alignment_mode}\n"
-            f"Confirmado: {signal.confirmation_time.date()}\n"
+            f"{'Confirmed' if signal.confirmed else 'Detected (still forming, may change)'}: {signal.confirmation_time.date()}\n"
             f"📊 https://www.tradingview.com/chart/?symbol={chart_symbol}"
         )
         return self.send(text)

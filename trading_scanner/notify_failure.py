@@ -9,7 +9,7 @@ def main() -> None:
     if not os.getenv("TELEGRAM_BOT_TOKEN") or not os.getenv("TELEGRAM_CHAT_ID"):
         return
     client = TelegramClient()
-    client.send("❌ O workflow dos scanners falhou antes de concluir. Consulta os logs do GitHub Actions.")
+    client.send("❌ The scanners workflow failed before finishing. Check the GitHub Actions logs.")
 
 
 if __name__ == "__main__":

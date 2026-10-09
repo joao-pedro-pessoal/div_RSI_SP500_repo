@@ -12,6 +12,28 @@ scanner:
   min_price_change_pct: 0.0
   min_rsi_delta: 0.0
 
+  # Tipos de divergencia (so no detector_mode: tradingview):
+  #   bullish_regular: preco Lower Low   + RSI Higher Low
+  #   bearish_regular: preco Higher High + RSI Lower High
+  #   bullish_hidden:  preco Higher Low  + RSI Lower Low
+  #   bearish_hidden:  preco Lower High  + RSI Higher High
+  # Para ligar as hidden, acrescenta-as a lista.
+  divergence_types: [bullish_regular, bearish_regular, bullish_hidden, bearish_hidden]
+
+  # Velas a direita do 2o pivot antes de alertar. Omisso = pivot_right (igual
+  # ao Pine). 0 = alerta LOGO no fecho da vela que faz o novo low/high do RSI
+  # ("em formacao": o movimento ainda pode continuar e o alerta diz isso).
+  # Verifica primeiro com: python verificar_divergencias.py ... --confirm-bars 0
+  confirm_bars: 0
+
+  # true = alerta em CADA vela que prolonga a divergencia (novo low/high
+  # com a divergencia ainda valida) -> para DCA. false = so o 1o por perna.
+  alert_each_bar: true
+
+  # true = quando a divergencia confirma (pivot_right velas depois) chega
+  # OUTRA mensagem "CONFIRMED". false = so os alertas antecipados.
+  send_confirmed: true
+
   # As opções abaixo pertencem ao detector alternativo price_pivots e ficam
   # disponíveis para comparação/calibração futura.
   comparison_mode: consecutive

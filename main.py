@@ -104,13 +104,13 @@ def run() -> int:
 
         if config.telegram.send_heartbeat:
             telegram.send(
-                "✅ S&P 500 scanners concluídos\n"
-                f"Ações: {summary['downloaded']}/{summary['universe']}\n"
-                f"Novos sinais: {len(new_signals)}\n"
-                f"Alertas enviados: {sent}\n"
-                f"Falhas download: {summary['download_failures']}\n"
-                f"Bloqueadas por dados: {skipped}\n"
-                f"Erros scan: {len(scan_errors)}"
+                "✅ S&P 500 scanners finished\n"
+                f"Stocks: {summary['downloaded']}/{summary['universe']}\n"
+                f"New signals: {len(new_signals)}\n"
+                f"Alerts sent: {sent}\n"
+                f"Download failures: {summary['download_failures']}\n"
+                f"Blocked by data checks: {skipped}\n"
+                f"Scan errors: {len(scan_errors)}"
             )
 
         # Partial data is visible in the heartbeat; fail only if coverage is poor
@@ -121,7 +121,7 @@ def run() -> int:
     except Exception as exc:
         write_heartbeat(heartbeat_path, status="failed", details={"error": str(exc)})
         try:
-            telegram.send(f"❌ S&P 500 scanner falhou\n{type(exc).__name__}: {exc}")
+            telegram.send(f"❌ S&P 500 scanner failed\n{type(exc).__name__}: {exc}")
         except Exception:
             pass
         raise

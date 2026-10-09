@@ -57,13 +57,13 @@ class RankAlertTests(unittest.TestCase):
                     getattr(self.client,method)(factory(symbol))
                 text=send.call_args.args[0]
                 self.assertIn(label,text)
-                self.assertIn("Dados: OKX · Gráfico: Bybit",text)
+                self.assertIn("Data: OKX · Chart: Bybit",text)
                 self.assertIn("BYBIT%3A",text)
                 self.assertNotIn("symbol=OKX",text)
                 self.assertEqual(text.count("<b>"),text.count("</b>"))
             with patch.object(self.client,"send",return_value=True) as send:
                 getattr(self.client,method)(factory("BTC-USDT-SWAP","1D"))
-            self.assertIn("TIMEFRAME ALTO",send.call_args.args[0])
+            self.assertIn("HIGH TIMEFRAME",send.call_args.args[0])
             self.assertIn("₿ BITCOIN",send.call_args.args[0])
 
     def test_chart_quote_once_and_encoded(self):

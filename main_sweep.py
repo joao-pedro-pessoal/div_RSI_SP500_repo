@@ -82,7 +82,7 @@ def already_ran_recently(heartbeat_path: Path, minutes: int) -> bool:
     age = (datetime.now(timezone.utc) - ran_at).total_seconds() / 60.0
     if age < minutes:
         print(f"[skip] ja correu com sucesso ha {age:.0f} min "
-              f"(limite {minutes}); nada a fazer")
+              f"(limit {minutes}); nothing to do")
         return True
     return False
 
@@ -130,9 +130,9 @@ def main() -> int:
         # afogam os alertas que realmente interessam.
         if telegram_cfg.get("send_start_notice", True):
             telegram.send(
-                "\U0001F50D Sweep scanner a começar\n"
+                "\U0001F50D Sweep scanner starting\n"
                 f"Timeframes: {', '.join(timeframes)}\n"
-                f"Moedas: {len(symbols)}"
+                f"Coins: {len(symbols)}"
             )
 
         need_4h = any(t in ("4h", "1D", "3D") for t in timeframes)
@@ -211,17 +211,17 @@ def main() -> int:
 
         if telegram_cfg.get("send_heartbeat", True):
             telegram.send(
-                "\U00002705 Sweep scanner concluído\n"
+                "\U00002705 Sweep scanner finished\n"
                 # max() e nao downloaded_4h: no workflow de 1h nao se
                 # descarregam barras de 4h, e o heartbeat dizia "0/100".
-                f"Moedas: {max(summary['downloaded_4h'], summary['downloaded_1h'])}"
+                f"Coins: {max(summary['downloaded_4h'], summary['downloaded_1h'])}"
                 f"/{summary['universe']}\n"
                 f"Timeframes: {', '.join(timeframes)}\n"
-                f"Novos sinais: {summary['new_signals']}\n"
-                f"Alertas enviados: {sent}\n"
-                f"Falhas download: {summary['download_failures']}\n"
-                f"Bloqueadas por dados: {len(skipped)}\n"
-                f"Erros scan: {len(errors)}"
+                f"New signals: {summary['new_signals']}\n"
+                f"Alerts sent: {sent}\n"
+                f"Download failures: {summary['download_failures']}\n"
+                f"Blocked by data checks: {len(skipped)}\n"
+                f"Scan errors: {len(errors)}"
             )
         print(json.dumps(summary, indent=2))
         return 0
@@ -231,7 +231,7 @@ def main() -> int:
             write_heartbeat(Path(heartbeat_file), status="error", details={"error": str(exc)})
         print(f"fatal: {type(exc).__name__}: {exc}", file=sys.stderr)
         if not args.dry_run:
-            telegram.send(f"\U0000274C Sweep scanner falhou\n{type(exc).__name__}: {exc}")
+            telegram.send(f"\U0000274C Sweep scanner failed\n{type(exc).__name__}: {exc}")
         return 1
 
 

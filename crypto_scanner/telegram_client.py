@@ -85,7 +85,7 @@ class TelegramClient:
                 # simples e melhor que perder o alerta: a formatacao e
                 # cosmetica, o sinal nao.
                 if exc.code == 400 and fields.get("parse_mode"):
-                    print("[telegram] HTTP 400 com HTML; a reenviar em texto simples")
+                    print("[telegram] HTTP 400 with HTML; resending as plain text")
                     plain = dict(fields)
                     plain.pop("parse_mode", None)
                     plain["text"] = re.sub(r"</?[a-zA-Z]+>", "", plain["text"])
@@ -106,16 +106,16 @@ class TelegramClient:
                     except Exception:
                         pass
                     wait = min(wait, 90)
-                    print(f"[telegram] 429; a esperar {wait}s ({attempt + 1}/{self.MAX_RETRIES})")
+                    print(f"[telegram] 429; waiting {wait}s ({attempt + 1}/{self.MAX_RETRIES})")
                     time.sleep(wait + 1)
                     continue
-                print(f"[telegram] HTTP {exc.code}: envio falhou")
+                print(f"[telegram] HTTP {exc.code}: send failed")
                 return False
             except Exception as exc:
                 TelegramClient._last_send_at = time.monotonic()
-                print(f"[telegram] {type(exc).__name__}: envio falhou")
+                print(f"[telegram] {type(exc).__name__}: send failed")
                 return False
-        print("[telegram] desisti apos varias tentativas")
+        print("[telegram] giving up after several attempts")
         return False
 
     # Timeframes raros. Um sinal de 1W aparece poucas vezes por mes e nao
@@ -148,12 +148,12 @@ class TelegramClient:
             close_time = close_time.replace(tzinfo=_dt.timezone.utc)
         age = (now - close_time).total_seconds() / 60.0
         if age < 0:
-            return "a fechar"
+            return "closing"
         if age < 90:
-            return f"há {age:.0f} min"
+            return f"{age:.0f} min ago"
         if age < 48 * 60:
-            return f"há {age / 60:.1f}h"
-        return f"há {age / 1440:.1f}d"
+            return f"{age / 60:.1f}h ago"
+        return f"{age / 1440:.1f}d ago"
 
     @staticmethod
     def _esc(value) -> str:
@@ -168,7 +168,7 @@ class TelegramClient:
             return ""
         mark = "\U0001F535" if bullish else "\U0001F7E0"   # circulos grandes
         band = mark * 5
-        return f"{band}\n<b>\u2b50 {timeframe} \u2014 TIMEFRAME ALTO \u2b50</b>\n{band}\n\n"
+        return f"{band}\n<b>\u2b50 {timeframe} \u2014 HIGH TIMEFRAME \u2b50</b>\n{band}\n\n"
 
     @staticmethod
     def _base_asset(symbol: str) -> str:
@@ -209,7 +209,7 @@ class TelegramClient:
     def _rank_label(self, symbol: str) -> str:
         tier = self._tier(symbol)
         rank = self.market_cap_ranks.get(symbol.upper())
-        suffix = f" · #{rank} por capitalização" if rank is not None else ""
+        suffix = f" · #{rank} by market cap" if rank is not None else ""
         if tier == 0:
             return "🟠 ₿ BITCOIN — BTC" + suffix
         if tier == 1:
@@ -236,7 +236,7 @@ class TelegramClient:
         # Navigation only. Indicators/prices still use OKX candles.
         return urllib.parse.quote(f"BYBIT:{cls._base_asset(symbol)}USDT.P")
 
-    SOURCE_NOTE = "Dados: OKX · Gráfico: Bybit"
+    SOURCE_NOTE = "Data: OKX · Chart: Bybit"
 
     @staticmethod
     def _fmt_price(value: float) -> str:
@@ -257,12 +257,14 @@ class TelegramClient:
         return f"{value:.9f}"
 
     def send_signal(self, signal: "DivergenceSignal") -> bool:
-        bullish = signal.kind == "bullish_regular"
+        bullish = signal.bullish
         icon = "\U0001F7E2" if bullish else "\U0001F534"
-        title = "BULLISH RSI DIVERGENCE" if bullish else "BEARISH RSI DIVERGENCE"
+        title = signal.title
         price_label = "Low" if bullish else "High"
-        price_arrow = "\u2193" if bullish else "\u2191"
-        rsi_arrow = "\u2191" if bullish else "\u2193"
+        price_arrow = "\u2191" if signal.second_pivot.value > signal.first_pivot.value else "\u2193"
+        rsi_arrow = "\u2191" if signal.second_rsi > signal.first_rsi else "\u2193"
+        status = ("Confirmed" if signal.confirmed
+                  else "Detected (still forming, may change)")
         high_tf = self._is_high_tf(signal.timeframe)
 
         base = self._esc(self._base_asset(signal.ticker))
@@ -279,14 +281,14 @@ class TelegramClient:
             f"{self._banner(signal.timeframe, bullish)}"
             f"{head}\n"
             f"{pair} \u2014 perp\n\n"
-            f"{price_label} anterior ({stamp(signal.first_pivot.timestamp)}): "
+            f"Previous {price_label.lower()} ({stamp(signal.first_pivot.timestamp)}): "
             f"${self._fmt_price(signal.first_pivot.value)}\n"
-            f"Novo {price_label.lower()} ({stamp(signal.second_pivot.timestamp)}): "
+            f"New {price_label.lower()} ({stamp(signal.second_pivot.timestamp)}): "
             f"${self._fmt_price(signal.second_pivot.value)} {price_arrow}\n\n"
-            f"RSI anterior: {signal.first_rsi:.2f}\n"
-            f"Novo RSI: {signal.second_rsi:.2f} {rsi_arrow}\n\n"
-            f"Dist\u00e2ncia: {signal.distance_bars} candles\n"
-            f"Confirmado: {stamp(signal.confirmation_time)} "
+            f"Previous RSI: {signal.first_rsi:.2f}\n"
+            f"New RSI: {signal.second_rsi:.2f} {rsi_arrow}\n\n"
+            f"Distance: {signal.distance_bars} candles\n"
+            f"{status}: {stamp(signal.confirmation_time)} "
             f"({self._candle_age(signal.confirmation_time, signal.timeframe)})\n"
             f"{self.SOURCE_NOTE}\n"
             f"\U0001F4CA https://www.tradingview.com/chart/?symbol={chart_symbol}"
@@ -294,7 +296,7 @@ class TelegramClient:
         return self.send(text)
 
     def send_comp(self, signal) -> bool:
-        """Alerta do COMP: rompimento de estrutura, com ou sem compressao."""
+        """COMP alert: structure breakout, with or without compression."""
         up = signal.kind == "breakout_up"
         icon = "\U0001F7E2" if up else "\U0001F534"
         seta = "\u2191" if up else "\u2193"
@@ -306,23 +308,23 @@ class TelegramClient:
         # rompimento solto tem uma linha so. Titulos diferentes porque nao
         # sao a mesma coisa -- tratados igual no ecra, acabam tratados igual
         # na execucao.
-        titulo = "COMP \u2014 rompimento" if signal.in_compression else "Rompimento de estrutura"
+        titulo = "COMP \u2014 breakout" if signal.in_compression else "Structure breakout"
         head = f"<b>{icon} {titulo} {seta}</b>" if high_tf else f"{icon} {titulo} {seta}"
 
-        contexto = (f"Compress\u00e3o: {self._esc(signal.compression_type)}"
-                    f"{f' · ápex ~{signal.apex_bars:.0f} barras' if signal.apex_bars else ''}"
-                    if signal.in_compression else "Sem compress\u00e3o ativa")
-        estrutura = ("Trendline" if signal.source == "trendline" else "Zona horizontal")
+        contexto = (f"Compression: {self._esc(signal.compression_type)}"
+                    f"{f' · apex ~{signal.apex_bars:.0f} bars' if signal.apex_bars else ''}"
+                    if signal.in_compression else "No active compression")
+        estrutura = ("Trendline" if signal.source == "trendline" else "Horizontal zone")
 
         text = (
             f"{self._banner(signal.timeframe, up)}"
             f"{head}\n"
             f"<b>{base} \u2014 {signal.timeframe}</b> \u2014 perp\n\n"
-            f"{estrutura}: {signal.touches} toques · {signal.span_bars} barras\n"
-            f"N\u00edvel: ${self._fmt_price(signal.level)}\n"
-            f"Fecho: ${self._fmt_price(signal.close)}\n"
+            f"{estrutura}: {signal.touches} touches · {signal.span_bars} bars\n"
+            f"Level: ${self._fmt_price(signal.level)}\n"
+            f"Close: ${self._fmt_price(signal.close)}\n"
             f"{contexto}\n"
-            f"Vela: {signal.bar_time.strftime('%Y-%m-%d %H:%M')} "
+            f"Candle: {signal.bar_time.strftime('%Y-%m-%d %H:%M')} "
             f"({self._candle_age(signal.bar_time, signal.timeframe)})\n"
             f"{self.SOURCE_NOTE}\n"
             f"\U0001F4CA https://www.tradingview.com/chart/?symbol={chart}"
@@ -359,9 +361,9 @@ class TelegramClient:
         def stamp(ts) -> str:
             return ts.strftime("%Y-%m-%d %H:%M") if sweep.timeframe in ("1h", "4h") else str(ts.date())
 
-        origem = (f"passou a origem em {sweep.origin_atr:.2f} ATR"
+        origem = (f"went past the origin by {sweep.origin_atr:.2f} ATR"
                   if sweep.origin_atr >= 0
-                  else f"ficou a {abs(sweep.origin_atr):.2f} ATR da origem")
+                  else f"stopped {abs(sweep.origin_atr):.2f} ATR short of the origin")
 
         head = f"<b>{icon} {title}</b>" if high_tf else f"{icon} {title}"
         pair = f"<b>{base} \u2014 {sweep.timeframe}</b>" if high_tf else f"{base} \u2014 {sweep.timeframe}"
@@ -371,14 +373,14 @@ class TelegramClient:
             f"{self._banner(sweep.timeframe, bullish)}"
             f"{head}\n"
             f"{pair} \u2014 perp\n\n"
-            f"N\u00edvel varrido: ${self._fmt_price(sweep.swept_level)}\n"
-            f"Extremo da vela: ${self._fmt_price(sweep.sweep_extreme)}\n"
-            f"Profundidade: {sweep.depth_atr:.2f} ATR\n\n"
-            f"Pavio: {sweep.wick_fraction * 100:.0f}% da vela\n"
-            f"Fecho: {sweep.close_position * 100:.0f}% (topo da vela)\n\n"
-            f"Tend\u00eancia: {sweep.n_pivots} pivots, {sweep.trend_atr:.2f} ATR\n"
+            f"Swept level: ${self._fmt_price(sweep.swept_level)}\n"
+            f"Candle extreme: ${self._fmt_price(sweep.sweep_extreme)}\n"
+            f"Depth: {sweep.depth_atr:.2f} ATR\n\n"
+            f"Wick: {sweep.wick_fraction * 100:.0f}% of the candle\n"
+            f"Close: {sweep.close_position * 100:.0f}% (top of the candle)\n\n"
+            f"Trend: {sweep.n_pivots} pivots, {sweep.trend_atr:.2f} ATR\n"
             f"{origem}\n\n"
-            f"Vela: {stamp(sweep.sweep_time)} ({self._candle_age(sweep.sweep_time, sweep.timeframe)})\n"
+            f"Candle: {stamp(sweep.sweep_time)} ({self._candle_age(sweep.sweep_time, sweep.timeframe)})\n"
             f"{self.SOURCE_NOTE}\n"
             f"\U0001F4CA https://www.tradingview.com/chart/?symbol={chart_symbol}"
         )
@@ -441,7 +443,7 @@ class TelegramClient:
     def _send_sweep_digest(self, sweeps: list) -> bool:
         timeframes = sorted({s.timeframe for s in sweeps})
         idade = self._candle_age(sweeps[0].sweep_time, sweeps[0].timeframe)
-        header = (f"\U0001F30A <b>{len(sweeps)} varrimento"
+        header = (f"\U0001F30A <b>{len(sweeps)} sweep"
                   f"{'s' if len(sweeps) > 1 else ''}</b> \u2014 {', '.join(timeframes)}"
                   f"{' · ' + idade if idade else ''}")
 
@@ -457,7 +459,7 @@ class TelegramClient:
                 f'{icon} <a href="https://www.tradingview.com/chart/?symbol={chart}">'
                 f"<b>{base}</b></a> {sweep.timeframe}  "
                 f"{self._rank_label(sweep.symbol)}  "
-                f"{sweep.depth_atr:.2f} ATR · pavio {sweep.wick_fraction * 100:.0f}% · {quando}"
+                f"{sweep.depth_atr:.2f} ATR · wick {sweep.wick_fraction * 100:.0f}% · {quando}"
             )
         return self.send("\n".join(linhas))
 
@@ -471,14 +473,15 @@ class TelegramClient:
     def _send_signal_digest(self, signals: list) -> bool:
         timeframes = sorted({s.timeframe for s in signals})
         idade = self._candle_age(signals[0].confirmation_time, signals[0].timeframe)
-        header = (f"\U0001F4C9 <b>{len(signals)} diverg\u00eancia"
+        header = (f"\U0001F4C9 <b>{len(signals)} divergence"
                   f"{'s' if len(signals) > 1 else ''}</b> \u2014 {', '.join(timeframes)}"
                   f"{' · ' + idade if idade else ''}")
 
         linhas = [header, self.SOURCE_NOTE, ""]
         for signal in signals:
-            bullish = signal.kind == "bullish_regular"
-            icon = "\U0001F7E2" if bullish else "\U0001F534"
+            icon = "\U0001F7E2" if signal.bullish else "\U0001F534"
+            icon += (" H" if signal.hidden else "") + (" Bull" if signal.bullish else " Bear")
+            icon += " ✅" if signal.confirmed else " ⏳"
             base = self._esc(self._base_asset(signal.ticker))
             quando = (signal.confirmation_time.strftime("%d/%m %H:%M")
                       if signal.timeframe == "4h" else str(signal.confirmation_time.date()))

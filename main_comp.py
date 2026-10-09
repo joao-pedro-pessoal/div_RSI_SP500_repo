@@ -75,7 +75,7 @@ def already_ran_recently(heartbeat_path: Path, minutes: int) -> bool:
     age = (datetime.now(timezone.utc) - ran_at).total_seconds() / 60.0
     if age < minutes:
         print(f"[skip] ja correu com sucesso ha {age:.0f} min "
-              f"(limite {minutes}); nada a fazer")
+              f"(limit {minutes}); nothing to do")
         return True
     return False
 
@@ -105,9 +105,9 @@ def main() -> int:
         # Ver nota em main_sweep.py sobre o volume de mensagens.
         if getattr(config.telegram, "send_start_notice", True):
             telegram.send(
-                "\U0001F50D COMP a começar\n"
+                "\U0001F50D COMP starting\n"
                 f"Timeframes: {', '.join(config.comp.timeframes)}\n"
-                f"Moedas: {len(symbols)}"
+                f"Coins: {len(symbols)}"
             )
 
         provider_config = ProviderConfig(
@@ -166,13 +166,13 @@ def main() -> int:
 
         if config.telegram.send_heartbeat:
             telegram.send(
-                "\U00002705 COMP concluído\n"
-                f"Moedas: {summary['downloaded']}/{summary['universe']}\n"
-                f"Novos sinais: {summary['new_signals']}\n"
-                f"Alertas enviados: {sent}\n"
-                f"Falhas download: {summary['download_failures']}\n"
-                f"Bloqueadas por dados: {skipped}\n"
-                f"Erros scan: {len(scan_errors)}"
+                "\U00002705 COMP finished\n"
+                f"Coins: {summary['downloaded']}/{summary['universe']}\n"
+                f"New signals: {summary['new_signals']}\n"
+                f"Alerts sent: {sent}\n"
+                f"Download failures: {summary['download_failures']}\n"
+                f"Blocked by data checks: {skipped}\n"
+                f"Scan errors: {len(scan_errors)}"
             )
         print(json.dumps(summary, indent=2))
         return 0
@@ -181,7 +181,7 @@ def main() -> int:
         write_heartbeat(heartbeat_path, status="error", details={"error": str(exc)})
         print(f"fatal: {type(exc).__name__}: {exc}", file=sys.stderr)
         if not args.dry_run:
-            telegram.send(f"\U0000274C COMP falhou\n{type(exc).__name__}: {exc}")
+            telegram.send(f"\U0000274C COMP failed\n{type(exc).__name__}: {exc}")
         return 1
 
 
