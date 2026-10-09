@@ -54,6 +54,8 @@ class Asset:
     symbol: str               # "GC=F", "^GSPC", "BTC-USDT-SWAP"
     chart: str                # TradingView symbol for the link
     session: str = "futures"  # yahoo only: "futures" | "us_equity"
+    # Optional subset of the scanner timeframes for this asset only.
+    timeframes: list[str] | None = None
 
 
 # session -> (4h anchor, daily close) in New York time
@@ -183,6 +185,8 @@ def fetch_asset(asset: Asset, cfg: MacroConfig, now: pd.Timestamp) -> dict[str, 
         from .provider import BAR_1H, ProviderConfig, fetch_klines
 
         h1 = fetch_klines(asset.symbol, ProviderConfig(bars=cfg.okx_bars_1h, bar=BAR_1H))
+        if asset.timeframes is not None and set(asset.timeframes) <= {"1h"}:
+            return {"1h": h1.rename(columns=COLUMN_MAP)}   # skip ~42 pages of 4h bars
         h4 = fetch_klines(asset.symbol, ProviderConfig(bars=cfg.okx_bars_4h))
         return okx_timeframes(h1, h4)
     if asset.source == "yahoo":

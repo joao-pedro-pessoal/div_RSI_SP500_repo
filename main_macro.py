@@ -83,6 +83,8 @@ def main() -> int:
                 print(f"[macro] {asset.name}: download failed: {errors[asset.name]}")
                 continue
             for tf in timeframes:
+                if asset.timeframes is not None and tf not in asset.timeframes:
+                    continue
                 bars = frames.get(tf)
                 if bars is None or bars.empty:
                     errors[f"{asset.name}:{tf}"] = "no closed bars"

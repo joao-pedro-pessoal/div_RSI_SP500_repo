@@ -29,6 +29,9 @@ assets:
     source: okx
     symbol: BTC-USDT-SWAP
     chart: BYBIT:BTCUSDT.P
+    # So 1h: o BTC em 4h/1D/3D/1W ja chega pelo scanner das cripto, que
+    # escreve no MESMO topico do Telegram. Sem isto vinha tudo a dobrar.
+    timeframes: [1h]
 
 scanner:
   rsi_period: 14
