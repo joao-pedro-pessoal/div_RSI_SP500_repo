@@ -53,11 +53,6 @@ CRON_TZ=UTC
 20 0,4,8,12,16,20 * * * bash $RUN crypto config_crypto_4h.yaml
 26 0 * * *             bash $RUN crypto config_crypto_daily.yaml
 
-# Divergencias antecipadas (pivot_right: 3), mesmo topico, etiquetadas.
-# Aos :32 e nao junto do normal: ambos pedem o ranking a CoinGecko e o
-# escalao gratuito devolve 429 quando dois scans coincidem.
-32 0,4,8,12,16,20 * * * bash $RUN crypto_cedo config_crypto_4h_cedo.yaml
-
 # COMP — rompimentos de estrutura.
 # Aos :38 e :44, a seguir a tudo o resto: e o ultimo da fila a pedir o
 # ranking a CoinGecko, e o que menos incomoda se falhar.
