@@ -1,0 +1,72 @@
+# Divergencias de RSI em ouro, prata, S&P 500 e BTC, de 1h a 1W.
+#
+# Corre de 30 em 30 minutos (aos :20 e :50, ver deploy/install_cron.sh):
+#   :20 apanha a vela de 1h do ouro/prata/BTC que fechou aos :00
+#       (+ ~15 min de atraso do Yahoo nos futuros)
+#   :50 apanha a vela de 1h do S&P 500, que fecha aos :30
+#
+# Mesmo detetor e mesmas regras dos outros scanners: alerta LOGO quando a
+# divergencia aparece (FORMING) e outra mensagem quando confirma (CONFIRMED).
+
+assets:
+  # TradingView: comparar com o simbolo em "chart" -- e o mesmo mercado.
+  - name: GOLD (XAU)
+    source: yahoo
+    symbol: GC=F
+    chart: COMEX:GC1!
+    session: futures
+  - name: SILVER (XAG)
+    source: yahoo
+    symbol: SI=F
+    chart: COMEX:SI1!
+    session: futures
+  - name: S&P 500
+    source: yahoo
+    symbol: ^GSPC
+    chart: SP:SPX
+    session: us_equity
+  - name: BTC
+    source: okx
+    symbol: BTC-USDT-SWAP
+    chart: BYBIT:BTCUSDT.P
+
+scanner:
+  rsi_period: 14
+  detector_mode: tradingview
+  pivot_left: 5
+  pivot_right: 5
+  min_distance_bars: 5
+  max_distance_bars: 60
+  min_price_change_pct: 0.0
+  min_rsi_delta: 0.0
+
+  divergence_types: [bullish_regular, bearish_regular, bullish_hidden, bearish_hidden]
+  confirm_bars: 0          # alerta logo na vela da divergencia
+  alert_each_bar: true     # DCA: alerta em cada vela que prolonga a divergencia
+  send_confirmed: true     # e outra mensagem quando confirma (5 velas depois)
+
+  timeframes: [1h, 4h, 1D, 3D, 1W]
+
+  # So a vela que acabou de fechar. Com execucoes de 30 em 30 min nenhuma
+  # vela de 1h fica por ver.
+  alert_age_bars:
+    1h: 1
+    4h: 1
+    1D: 1
+    3D: 1
+    1W: 1
+
+data:
+  yahoo_delay_minutes: 15
+  hourly_days: 700
+  daily_start: "2015-01-01"
+  okx_bars_1h: 1000
+  okx_bars_4h: 4200
+
+telegram:
+  # Corre 48x/dia: sem mensagem de inicio/fim, so alertas e erros.
+  send_heartbeat: false
+  send_errors: true
+
+state_file: state/macro_signals.json
+heartbeat_file: state/macro_heartbeat.json

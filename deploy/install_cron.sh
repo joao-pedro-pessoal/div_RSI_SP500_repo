@@ -53,6 +53,12 @@ CRON_TZ=UTC
 20 0,4,8,12,16,20 * * * bash $RUN crypto config_crypto_4h.yaml
 26 0 * * *             bash $RUN crypto config_crypto_daily.yaml
 
+# Divergencias de RSI: ouro, prata, S&P 500 e BTC, de 1h a 1W.
+# De 30 em 30 min: aos :20 apanha a vela de 1h que fechou aos :00 (o Yahoo
+# atrasa ~15 min nos futuros) e aos :50 a do S&P 500, que fecha aos :30.
+# Nao pede nada a CoinGecko, por isso pode coincidir com os outros.
+20,50 * * * *          bash $RUN macro config_macro.yaml
+
 # COMP — rompimentos de estrutura.
 # Aos :38 e :44, a seguir a tudo o resto: e o ultimo da fila a pedir o
 # ranking a CoinGecko, e o que menos incomoda se falhar.

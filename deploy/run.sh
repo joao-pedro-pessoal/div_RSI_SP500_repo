@@ -55,7 +55,13 @@ case "$KIND" in
         export TELEGRAM_TOPIC_ID="${TELEGRAM_TOPIC_ID_COMP:-${TELEGRAM_TOPIC_ID_CRYPTO:-}}"
         MAIN="main_comp.py"
         ;;
-    *) echo "tipo desconhecido: $KIND (usa sweep, crypto, crypto_cedo, comp ou sp500)" >&2; exit 2 ;;
+    # Ouro, prata, S&P 500 e BTC, de 1h a 1W. Topico proprio se existir;
+    # senao cai no das divergencias de cripto.
+    macro)
+        export TELEGRAM_TOPIC_ID="${TELEGRAM_TOPIC_ID_MACRO:-${TELEGRAM_TOPIC_ID_CRYPTO:-}}"
+        MAIN="main_macro.py"
+        ;;
+    *) echo "tipo desconhecido: $KIND (usa sweep, crypto, crypto_cedo, comp, macro ou sp500)" >&2; exit 2 ;;
 esac
 
 # Sem isto o Python guarda a saida em memoria quando escreve para ficheiro
